@@ -114,10 +114,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const link = generateStudentLink();
     navigator.clipboard.writeText(link).then(() => {
       if (copyToast) {
+        copyToast.innerHTML = "✅ คัดลอกลิงก์เรียบร้อย! (นำลิงก์นี้ไปส่งให้นักเรียนเพื่อเปิดระบบป้องกันโดยไม่ต้องลง Extension)";
         copyToast.style.display = "block";
-        setTimeout(() => { copyToast.style.display = "none"; }, 3000);
+        setTimeout(() => { copyToast.style.display = "none"; }, 4000);
       } else {
-        alert("✅ คัดลอกลิงก์ข้อสอบเรียบร้อยแล้ว!");
+        alert("✅ คัดลอกลิงก์ข้อสอบเรียบร้อยแล้ว!\n\nให้นำลิงก์นี้ไปส่งให้นักเรียนเข้าสอบ (ระบบป้องกันจะทำงานทันทีโดยนักเรียนไม่ต้องลง Extension ครับ)");
       }
     }).catch(() => {
       prompt("คัดลอกลิงก์ส่งให้นักเรียน:", link);

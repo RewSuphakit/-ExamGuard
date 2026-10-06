@@ -1236,6 +1236,10 @@
     if (!started || isTerminated || isTimeUp || !config.detectTabSwitch) return;
     setTimeout(() => {
       if (!started || isTerminated || isTimeUp) return;
+      // หากผู้สอบกำลังคลิกหรือพิมพ์คำตอบอยู่ใน Google Form (iframe) ไม่ถือว่าหลุดโฟกัส
+      if (document.activeElement && document.activeElement.tagName === "IFRAME") {
+        return;
+      }
       // ตรวจสอบว่าเบราว์เซอร์หลุดโฟกัสจริงหรือไม่ (เช่น สลับไปใช้โปรแกรมอื่น, คลิกทาสก์บาร์)
       if (!document.hasFocus() && !document.hidden) {
         const now = Date.now();

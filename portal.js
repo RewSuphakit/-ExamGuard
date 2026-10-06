@@ -32,6 +32,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!rawUrl) return "";
     let url = rawUrl.trim();
     if (url.includes("docs.google.com/forms")) {
+      // Auto-convert editor URL (/edit) to response URL (/viewform)
+      url = url.replace(/\/edit.*$/, "/viewform");
       url = url.replace(/[\?&]usp=[^&]+/, "");
       if (!url.includes("embedded=true")) {
         url += (url.includes("?") ? "&" : "?") + "embedded=true";
@@ -41,11 +43,41 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function loadFormIntoIframe() {
-    const targetUrl = formatEmbedUrl(getTargetFormUrl());
+    const rawTarget = getTargetFormUrl();
+    const targetUrl = formatEmbedUrl(rawTarget);
     const iframe = document.getElementById("google-form-iframe");
-    if (iframe && targetUrl) {
+    const emptyNotice = document.getElementById("empty-form-notice");
+
+    if (!targetUrl) {
+      if (iframe) iframe.style.display = "none";
+      if (emptyNotice) emptyNotice.style.display = "flex";
+      return;
+    }
+
+    if (emptyNotice) emptyNotice.style.display = "none";
+    if (iframe) {
+      iframe.style.display = "block";
       iframe.src = targetUrl;
     }
+  }
+
+  // Handle empty state form loader
+  const emptyBtnLoad = document.getElementById("empty-btn-load-form");
+  const emptyInput = document.getElementById("empty-input-form-url");
+  if (emptyBtnLoad && emptyInput) {
+    const doLoadFromEmpty = () => {
+      const val = emptyInput.value.trim();
+      if (!val) return alert("กรุณากรอกลิงก์ Google Forms");
+      localStorage.setItem("eg_current_google_form", val);
+      const u = new URL(window.location.href);
+      u.searchParams.set("form", val);
+      u.searchParams.set("reset", "1");
+      window.location.href = u.href;
+    };
+    emptyBtnLoad.addEventListener("click", doLoadFromEmpty);
+    emptyInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") doLoadFromEmpty();
+    });
   }
 
   // Proctor Mode Handling: Students do NOT see top-bar

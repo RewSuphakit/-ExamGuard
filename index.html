@@ -9,8 +9,8 @@
        Exam Guard Web (Standalone Edition - Zero Extension Required)
        รองรับข้อสอบ Google Forms ทุกฟอร์ม (ทั้งของคุณและของคนอื่น)
        ===================================================================== -->
-  <script src="portal.js?v=2.4.1"></script>
-  <script src="exam-guard-web.js?v=2.4.1"></script>
+  <script src="portal.js?v=2.4.2"></script>
+  <script src="exam-guard-web.js?v=2.4.2"></script>
 
   <style>
     :root {
@@ -199,6 +199,22 @@
         loading="lazy">
         กำลังโหลดแบบทดสอบ Google Forms...
       </iframe>
+      <div id="empty-form-notice" style="display:none; position:absolute; inset:0; background:#0b1120; align-items:center; justify-content:center; flex-direction:column; padding:24px; text-align:center; z-index:5;">
+        <div style="background:#182239; border:1px solid #334155; border-radius:20px; padding:32px 28px; max-width:520px; width:92%; box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+          <div style="font-size:48px; margin-bottom:12px;">📝</div>
+          <h2 style="color:#fff; margin:0 0 10px; font-size:20px;">ไม่พบลิงก์แบบทดสอบ Google Forms</h2>
+          <p style="color:#94a3b8; font-size:14px; margin:0 0 20px; line-height:1.6;">
+            หน้านี้ยังไม่ได้ระบุลิงก์ข้อสอบ กรุณาเปิดผ่านลิงก์ที่ได้รับจากครูผู้สอน หรือนำลิงก์ Google Forms มาใส่ด้านล่างนี้เพื่อเริ่มสอบ:
+          </p>
+          <div style="display:flex; gap:8px; margin-bottom:16px;">
+            <input type="url" id="empty-input-form-url" class="modal-input" placeholder="https://docs.google.com/forms/d/e/.../viewform" />
+            <button type="button" class="btn-primary" id="empty-btn-load-form" style="white-space:nowrap;">เริ่มสอบ</button>
+          </div>
+          <div style="font-size:12px; color:#64748b; line-height:1.5;">
+            💡 หากคุณเป็นครูผู้คุมสอบ: สามารถกด <strong>Ctrl + Shift + P</strong> เพื่อเปิดแถบเครื่องมือและแชร์ลิงก์ให้นักเรียน
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
