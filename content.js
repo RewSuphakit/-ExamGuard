@@ -901,6 +901,43 @@
     }
   }
 
+  // Real-time Proctor remote unlock & delete listener
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg.type === "EXAM_GUARD_UNLOCKED") {
+      if (sessionData && msg.sessionId === sessionData.sessionId) {
+        isTerminated = false;
+        started = true;
+        violations = 0;
+        sessionData.status = "active";
+        sessionData.violations = 0;
+        if (lockoutGateObserver) {
+          lockoutGateObserver.disconnect();
+          lockoutGateObserver = null;
+        }
+        document.body?.classList.remove("eg-body-locked");
+        document.documentElement?.classList.remove("eg-terminated");
+        document.getElementById("eg-lockout-gate")?.remove();
+        if (sessionData?.enableTimer) {
+          initExamTimer();
+        }
+        showToast("🔓 ผู้คุมสอบปลดล็อกแล้ว", "อาจารย์ปลดล็อกให้จากแดชบอร์ด สามารถทำข้อสอบต่อได้ทันที", "normal");
+      }
+    } else if (msg.type === "EXAM_GUARD_SESSION_DELETED") {
+      if (msg.all || (sessionData && msg.sessionId === sessionData.sessionId)) {
+        isTerminated = false;
+        violations = 0;
+        if (lockoutGateObserver) {
+          lockoutGateObserver.disconnect();
+          lockoutGateObserver = null;
+        }
+        document.body?.classList.remove("eg-body-locked");
+        document.documentElement?.classList.remove("eg-terminated");
+        document.getElementById("eg-lockout-gate")?.remove();
+        showToast("ℹ️ รีเซ็ตสถานะการสอบ", "บันทึกการสอบถูกลบออกจากระบบแล้ว", "normal");
+      }
+    }
+  });
+
   function escapeHtml(str) {
     if (!str) return "";
     return String(str)

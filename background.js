@@ -243,11 +243,32 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           id: `log_${Date.now()}`,
           time: Date.now(),
           type: "unlock",
-          detail: "ผู้คุมสอบทำการปลดล็อกให้สอบต่อ",
+          detail: "ผู้คุมสอบทำการปลดล็อกให้สอบต่อจากแดชบอร์ด",
           violationNumber: 0
         });
         await chrome.storage.local.set({ examGuard_sessions: sessions });
       }
+
+      // Also reset state in matching examGuard:* storage key
+      const all = await chrome.storage.local.get(null);
+      for (const [k, v] of Object.entries(all)) {
+        if (k.startsWith("examGuard:") && v && typeof v === "object" && v.sessionId === sessionId) {
+          v.status = "active";
+          v.violations = 0;
+          await chrome.storage.local.set({ [k]: v });
+        }
+      }
+
+      // Broadcast to tabs to unlock active screen in realtime
+      try {
+        const tabs = await chrome.tabs.query({});
+        for (const t of tabs) {
+          if (t.id) {
+            chrome.tabs.sendMessage(t.id, { type: "EXAM_GUARD_UNLOCKED", sessionId }).catch(() => {});
+          }
+        }
+      } catch (e) {}
+
       await updateBadge();
       sendResponse({ success: true });
     })();
@@ -271,6 +292,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       if (delKeys.length > 0) {
         await chrome.storage.local.remove(delKeys);
       }
+
+      // Broadcast to tabs
+      try {
+        const tabs = await chrome.tabs.query({});
+        for (const t of tabs) {
+          if (t.id) {
+            chrome.tabs.sendMessage(t.id, { type: "EXAM_GUARD_SESSION_DELETED", all: true }).catch(() => {});
+          }
+        }
+      } catch (e) {}
+
       await updateBadge();
       sendResponse({ success: true });
     })();
@@ -283,6 +315,32 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       const data = await chrome.storage.local.get({ examGuard_sessions: [] });
       let sessions = (data.examGuard_sessions || []).filter(s => s.sessionId !== sessionId);
       await chrome.storage.local.set({ examGuard_sessions: sessions });
+
+      // Clean up matching active session keys
+      const all = await chrome.storage.local.get(null);
+      const delKeys = [];
+      for (const [k, v] of Object.entries(all)) {
+        if (k.startsWith("examGuard_active:") && v === sessionId) {
+          delKeys.push(k);
+        }
+        if (k.startsWith("examGuard:") && v && typeof v === "object" && v.sessionId === sessionId) {
+          delKeys.push(k);
+        }
+      }
+      if (delKeys.length > 0) {
+        await chrome.storage.local.remove(delKeys);
+      }
+
+      // Broadcast to tabs
+      try {
+        const tabs = await chrome.tabs.query({});
+        for (const t of tabs) {
+          if (t.id) {
+            chrome.tabs.sendMessage(t.id, { type: "EXAM_GUARD_SESSION_DELETED", sessionId }).catch(() => {});
+          }
+        }
+      } catch (e) {}
+
       await updateBadge();
       sendResponse({ success: true });
     })();

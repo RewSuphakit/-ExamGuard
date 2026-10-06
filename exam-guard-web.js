@@ -899,11 +899,14 @@
       <div class="egw-gallery-card">
         <div class="egw-gallery-header">
           <h2 style="margin:0; font-size:18px;">📷 ภาพถ่ายจากกล้องเว็บแคม (${snaps.length} ภาพ)</h2>
-          <button type="button" style="background:#334155; color:#fff; border:0; padding:6px 12px; border-radius:8px; cursor:pointer;" onclick="document.getElementById('egw-gallery-modal').style.display='none'">✕ ปิด</button>
+          <button type="button" id="egw-gallery-close" style="background:#334155; color:#fff; border:0; padding:6px 12px; border-radius:8px; cursor:pointer;">✕ ปิด</button>
         </div>
         <div class="egw-gallery-grid">${itemsHtml}</div>
       </div>
     `;
+    modal.querySelector("#egw-gallery-close")?.addEventListener("click", () => {
+      modal.style.display = "none";
+    });
     modal.style.display = "flex";
   }
 

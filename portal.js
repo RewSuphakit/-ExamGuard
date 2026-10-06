@@ -14,7 +14,7 @@ window.ExamGuardConfig = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  const DEFAULT_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScsVqQkzvQrzCoccN6QO8Jr5ZECnLmT7ZvPnTSs_aVXqd9lOw/viewform";
+  const DEFAULT_FORM_URL = "";
 
   function getTargetFormUrl() {
     const params = new URLSearchParams(window.location.search);

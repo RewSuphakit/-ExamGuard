@@ -28,8 +28,8 @@ function switchTab(tab) {
   }
 }
 
-document.getElementById("tab-btn-dashboard").onclick = () => switchTab("dashboard");
-document.getElementById("tab-btn-settings").onclick = () => switchTab("settings");
+document.getElementById("tab-btn-dashboard").addEventListener("click", () => switchTab("dashboard"));
+document.getElementById("tab-btn-settings").addEventListener("click", () => switchTab("settings"));
 
 // Check hash on load
 if (location.hash === "#settings") {
@@ -164,9 +164,9 @@ function renderTable() {
         </td>
         <td style="text-align: right;">
           <div class="action-btn-group" style="justify-content: flex-end;">
-            <button class="btn-xs" onclick="openDetailModal('${s.sessionId}')">🔍 ดูประวัติ</button>
-            ${isTerminated ? `<button class="btn-xs btn-xs-unlock" onclick="unlockStudentSession('${s.sessionId}')">🔓 ปลดล็อก</button>` : ''}
-            <button class="btn-xs" style="color: #f87171;" onclick="deleteStudentSession('${s.sessionId}')">🗑️</button>
+            <button type="button" class="btn-xs btn-action-detail" data-id="${escapeHtml(s.sessionId)}" title="ดูบันทึกเหตุการณ์">🔍 ดูประวัติ</button>
+            ${isTerminated ? `<button type="button" class="btn-xs btn-xs-unlock btn-action-unlock" data-id="${escapeHtml(s.sessionId)}" title="ปลดล็อกให้นักเรียนทำข้อสอบต่อ">🔓 ปลดล็อก</button>` : ''}
+            <button type="button" class="btn-xs btn-action-delete" style="color: #f87171;" data-id="${escapeHtml(s.sessionId)}" title="ลบข้อมูล">🗑️</button>
           </div>
         </td>
       </tr>
@@ -177,10 +177,44 @@ function renderTable() {
 // Search and filter listeners
 document.getElementById("search-input").addEventListener("input", renderTable);
 document.getElementById("status-filter").addEventListener("change", renderTable);
-document.getElementById("btn-refresh").onclick = loadDashboardData;
+document.getElementById("btn-refresh").addEventListener("click", loadDashboardData);
+
+// Event delegation on table body for actions (100% CSP-compliant, no inline onclick)
+const tableBody = document.getElementById("examinees-table-body");
+if (tableBody) {
+  tableBody.addEventListener("click", async (e) => {
+    const detailBtn = e.target.closest(".btn-action-detail");
+    if (detailBtn) {
+      const sessionId = detailBtn.getAttribute("data-id");
+      if (sessionId) openDetailModal(sessionId);
+      return;
+    }
+
+    const unlockBtn = e.target.closest(".btn-action-unlock");
+    if (unlockBtn) {
+      const sessionId = unlockBtn.getAttribute("data-id");
+      if (sessionId) await unlockStudentSession(sessionId);
+      return;
+    }
+
+    const deleteBtn = e.target.closest(".btn-action-delete");
+    if (deleteBtn) {
+      const sessionId = deleteBtn.getAttribute("data-id");
+      if (sessionId) await deleteStudentSession(sessionId);
+      return;
+    }
+  });
+}
+
+// Auto-refresh when storage changes
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === "local" && (changes.examGuard_sessions || changes.examGuard_active)) {
+    loadDashboardData();
+  }
+});
 
 // Modal Detail View
-window.openDetailModal = function(sessionId) {
+function openDetailModal(sessionId) {
   const session = allSessions.find(s => s.sessionId === sessionId);
   if (!session) return;
 
@@ -239,46 +273,46 @@ window.openDetailModal = function(sessionId) {
   `;
 
   modal.style.display = "flex";
-};
+}
 
-document.getElementById("modal-close").onclick = () => {
+document.getElementById("modal-close").addEventListener("click", () => {
   document.getElementById("modal-detail").style.display = "none";
-};
-document.getElementById("modal-btn-close").onclick = () => {
+});
+document.getElementById("modal-btn-close").addEventListener("click", () => {
   document.getElementById("modal-detail").style.display = "none";
-};
-document.getElementById("modal-detail").onclick = e => {
+});
+document.getElementById("modal-detail").addEventListener("click", e => {
   if (e.target.id === "modal-detail") {
     document.getElementById("modal-detail").style.display = "none";
   }
-};
+});
 
 // Unlock Student Session
-window.unlockStudentSession = async function(sessionId) {
+async function unlockStudentSession(sessionId) {
   if (confirm("ต้องการปลดล็อกให้นักเรียนคนนี้กลับมาทำข้อสอบต่อใช่หรือไม่? (จำนวนครั้งการละเมิดจะถูกรีเซ็ต)")) {
     await chrome.runtime.sendMessage({ type: "UNLOCK_SESSION", sessionId });
     await loadDashboardData();
   }
-};
+}
 
 // Delete Single Session
-window.deleteStudentSession = async function(sessionId) {
+async function deleteStudentSession(sessionId) {
   if (confirm("ต้องการลบประวัติของผู้สอบคนนี้ใช่หรือไม่?")) {
     await chrome.runtime.sendMessage({ type: "DELETE_SESSION", sessionId });
     await loadDashboardData();
   }
-};
+}
 
 // Clear All Sessions
-document.getElementById("btn-clear-all").onclick = async () => {
+document.getElementById("btn-clear-all").addEventListener("click", async () => {
   if (confirm("คำเตือน: คุณต้องการลบประวัติการสอบของผู้เข้าสอบทุกคนใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้")) {
     await chrome.runtime.sendMessage({ type: "CLEAR_ALL_SESSIONS" });
     await loadDashboardData();
   }
-};
+});
 
 // Export to CSV
-document.getElementById("btn-export").onclick = () => {
+document.getElementById("btn-export").addEventListener("click", () => {
   if (allSessions.length === 0) {
     alert("ยังไม่มีข้อมูลสำหรับส่งออกรายงาน");
     return;
@@ -336,7 +370,7 @@ async function loadSettingsData() {
   document.getElementById("setting-duration").value = cfg.examDurationMinutes || 60;
 }
 
-document.getElementById("btn-save-settings").onclick = async () => {
+document.getElementById("btn-save-settings").addEventListener("click", async () => {
   const patternsText = document.getElementById("setting-patterns").value;
   const patterns = patternsText.split("\n").map(x => x.trim()).filter(Boolean);
   const max = Math.max(1, Math.min(20, Number(document.getElementById("setting-max").value) || 3));
