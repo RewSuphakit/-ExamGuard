@@ -39,7 +39,35 @@
         } : null
       }, "*");
     }
+
+    // Bridge messages from standalone exam-guard-web.js into Chrome extension
+    if (event.data && event.data.source === "EXAM_GUARD_WEB") {
+      if (event.data.type === "REGISTER_SESSION") {
+        chrome.runtime.sendMessage({
+          type: "REGISTER_SESSION",
+          session: event.data.data
+        }).catch(() => {});
+      }
+      if (event.data.type === "RECORD_VIOLATION") {
+        chrome.runtime.sendMessage({
+          type: "RECORD_VIOLATION",
+          ...event.data.data
+        }).catch(() => {});
+      }
+    }
   });
+
+  // If running inside Google Forms (viewform / formResponse), enforce anti-copy & no-select directly inside the form!
+  if (location.hostname.includes("docs.google.com") && location.pathname.includes("/forms/") && !location.pathname.includes("/edit")) {
+    document.addEventListener("selectstart", e => e.preventDefault(), true);
+    document.addEventListener("copy", e => { e.preventDefault(); e.stopPropagation(); }, true);
+    document.addEventListener("cut", e => { e.preventDefault(); e.stopPropagation(); }, true);
+    document.addEventListener("contextmenu", e => { e.preventDefault(); e.stopPropagation(); }, true);
+
+    const noSelectStyle = document.createElement("style");
+    noSelectStyle.textContent = "* { -webkit-user-select: none !important; user-select: none !important; }";
+    (document.head || document.documentElement).appendChild(noSelectStyle);
+  }
   let maxViolations = 3;
   let proctorPin = "1234";
   let requireStudentInfo = true;

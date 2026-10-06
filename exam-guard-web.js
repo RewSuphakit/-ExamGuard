@@ -78,6 +78,16 @@
   let lastTabViolationTime = 0;
   let lastBlurViolationTime = 0;
 
+  function notifyExtension(type, data) {
+    try {
+      window.postMessage({
+        source: "EXAM_GUARD_WEB",
+        type: type,
+        data: data
+      }, "*");
+    } catch (e) {}
+  }
+
   // ==========================================================================
   // 1. INJECT STYLES (สร้างสไตล์ทั้งหมดในตัว ไม่ต้องโหลดไฟล์ CSS แยก)
   // ==========================================================================
@@ -447,6 +457,22 @@
     document.getElementById("egw-start-gate")?.remove();
     document.body.classList.add("egw-no-select");
 
+    // Sync session to Chrome extension (if installed)
+    notifyExtension("REGISTER_SESSION", {
+      sessionId: `web_${sessionData.studentId}_${sessionData.startTime}`,
+      studentName: sessionData.studentName,
+      studentId: sessionData.studentId,
+      seatNumber: sessionData.seatNumber,
+      startTime: sessionData.startTime,
+      violations: sessionData.violations || 0,
+      maxViolations: config.maxViolations,
+      durationMinutes: sessionData.durationMinutes,
+      status: "active",
+      enableTimer: config.enableTimer,
+      examTitle: config.examTitle,
+      logs: sessionData.logs || []
+    });
+
     // Request Fullscreen
     try {
       await document.documentElement.requestFullscreen?.();
@@ -652,12 +678,19 @@
   // ==========================================================================
   async function initCamera() {
     if (!config.enableCamera) return;
+    createCameraWidget();
     try {
       cameraStream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 320 }, height: { ideal: 240 } },
         audio: false
       });
-      createCameraWidget();
+      const v = document.getElementById("egw-camera-video");
+      if (v) v.srcObject = cameraStream;
+      const placeholder = document.getElementById("egw-camera-placeholder");
+      if (placeholder) placeholder.style.display = "none";
+      const badge = document.getElementById("egw-camera-badge");
+      if (badge) badge.textContent = "REC";
+
       // ถ่ายภาพยืนยันตัวตนภาพแรกหลังเปิดกล้อง 2 วินาที
       setTimeout(() => {
         captureSnapshot("ยืนยันตัวตนตอนเริ่มทำข้อสอบ");
@@ -672,7 +705,11 @@
       }
     } catch (err) {
       console.warn("Camera access denied or unavailable:", err);
-      showToast("⚠️ ไม่สามารถเปิดกล้องได้", "อาจไม่มีเว็บแคมหรือยังไม่ได้อนุญาตการใช้กล้อง", "warning");
+      const placeholder = document.getElementById("egw-camera-placeholder");
+      if (placeholder) {
+        placeholder.innerHTML = `<span style="color:#f87171; font-weight:700;">⚠️ ไม่ได้รับอนุญาตกล้อง</span><br><span style="font-size:10px; color:#94a3b8;">กรุณาอนุญาตกล้อง</span>`;
+      }
+      showToast("⚠️ ไม่สามารถเปิดกล้องได้", "อาจยังไม่ได้อนุญาตการใช้กล้องในเบราว์เซอร์", "warning");
     }
   }
 
@@ -681,13 +718,18 @@
     const box = document.createElement("div");
     box.id = "egw-camera-box";
     box.innerHTML = `
-      <div id="egw-camera-badge">REC</div>
+      <div id="egw-camera-badge">📷 CAM</div>
+      <div id="egw-camera-placeholder" style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; color:#cbd5e1; text-align:center; padding:6px; box-sizing:border-box;">
+        <span>กำลังเชื่อมต่อกล้อง...</span>
+      </div>
       <video id="egw-camera-video" autoplay playsinline muted></video>
     `;
     document.body.appendChild(box);
     const v = document.getElementById("egw-camera-video");
     if (v && cameraStream) {
       v.srcObject = cameraStream;
+      const placeholder = document.getElementById("egw-camera-placeholder");
+      if (placeholder) placeholder.style.display = "none";
     }
   }
 
@@ -785,6 +827,14 @@
       sessionData.logs.push(logEntry);
       saveSession();
     }
+
+    notifyExtension("RECORD_VIOLATION", {
+      sessionId: `web_${sessionData.studentId}_${sessionData.startTime}`,
+      violations: violations,
+      violationLog: logEntry,
+      isTerminated: violations >= config.maxViolations,
+      isTimeUp: isTimeUp
+    });
 
     if (violations >= config.maxViolations) {
       isTerminated = true;
@@ -1130,6 +1180,20 @@
         setupWatermarks();
         if (config.enableTimer) initExamTimer();
         if (config.enableCamera) initCamera();
+        notifyExtension("REGISTER_SESSION", {
+          sessionId: `web_${existing.studentId}_${existing.startTime}`,
+          studentName: existing.studentName,
+          studentId: existing.studentId,
+          seatNumber: existing.seatNumber,
+          startTime: existing.startTime,
+          violations: existing.violations || 0,
+          maxViolations: config.maxViolations,
+          durationMinutes: existing.durationMinutes,
+          status: existing.status,
+          enableTimer: config.enableTimer,
+          examTitle: config.examTitle,
+          logs: existing.logs || []
+        });
         showToast("🛡️ ดำเนินการสอบต่อ", `ผู้สอบ: ${existing.studentName} (ละเมิด ${violations}/${config.maxViolations})`);
         return;
       }

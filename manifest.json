@@ -18,7 +18,9 @@
       "matches": ["<all_urls>"],
       "css": ["styles.css"],
       "js": ["content.js"],
-      "run_at": "document_start"
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true
     }
   ],
   "web_accessible_resources": [
