@@ -347,7 +347,7 @@ document.getElementById("btn-export").addEventListener("click", () => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-};
+});
 
 // ==========================================================================
 // 2. SETTINGS DATA
@@ -394,4 +394,4 @@ document.getElementById("btn-save-settings").addEventListener("click", async () 
   setTimeout(() => {
     msg.textContent = "";
   }, 3000);
-};
+});
