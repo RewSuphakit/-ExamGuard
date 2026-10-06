@@ -149,8 +149,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       const data = await chrome.storage.local.get({ examGuard_sessions: [] });
       let sessions = data.examGuard_sessions || [];
-      // Replace existing session with same ID or add new
       const idx = sessions.findIndex(s => s.sessionId === session.sessionId);
+      const isNew = idx < 0;
       if (idx >= 0) {
         sessions[idx] = Object.assign({}, sessions[idx], session);
       } else {
@@ -169,6 +169,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       await chrome.storage.local.set(toStore);
       await updateBadge();
+
+      // Desktop Notification when student starts exam
+      if (isNew && chrome.notifications) {
+        try {
+          chrome.notifications.create(`start_${session.sessionId}`, {
+            type: "basic",
+            iconUrl: chrome.runtime.getURL("icon.png"),
+            title: "👤 ผู้เข้าสอบเริ่มทำข้อสอบ",
+            message: `${session.studentName || 'ผู้เข้าสอบ'} (รหัส: ${session.studentId || '-'}) ได้เข้าห้องสอบแล้ว`,
+            priority: 1
+          });
+        } catch (e) {}
+      }
+
       sendResponse({ success: true });
     })();
     return true;
@@ -180,9 +194,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       const data = await chrome.storage.local.get({ examGuard_sessions: [] });
       let sessions = data.examGuard_sessions || [];
       const idx = sessions.findIndex(s => s.sessionId === sessionId);
+      let studentName = msg.studentName || "ผู้เข้าสอบ";
+
       if (idx >= 0) {
         sessions[idx].violations = violations;
         sessions[idx].updatedAt = Date.now();
+        studentName = sessions[idx].studentName || studentName;
         if (violationLog) {
           if (!sessions[idx].logs) sessions[idx].logs = [];
           sessions[idx].logs.push(violationLog);
@@ -194,9 +211,57 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           sessions[idx].status = "timeup";
           sessions[idx].terminatedAt = Date.now();
         }
-        await chrome.storage.local.set({ examGuard_sessions: sessions });
+      } else {
+        // Fallback: create session if missing
+        sessions.unshift({
+          sessionId: sessionId || `session_${Date.now()}`,
+          studentName: studentName,
+          studentId: msg.studentId || "N/A",
+          seatNumber: msg.seatNumber || "-",
+          url: msg.url || "",
+          startTime: Date.now(),
+          violations: violations || 1,
+          maxViolations: msg.maxViolations || 3,
+          status: isTerminated ? "terminated" : (isTimeUp ? "timeup" : "active"),
+          terminatedAt: (isTerminated || isTimeUp) ? Date.now() : null,
+          logs: violationLog ? [violationLog] : []
+        });
       }
+
+      await chrome.storage.local.set({ examGuard_sessions: sessions });
       await updateBadge();
+
+      // Desktop Notification for Terminated, TimeUp, or Violation
+      if (chrome.notifications) {
+        try {
+          if (isTerminated) {
+            chrome.notifications.create(`term_${sessionId}_${Date.now()}`, {
+              type: "basic",
+              iconUrl: chrome.runtime.getURL("icon.png"),
+              title: `🚨 ระงับการสอบ (ตัดสิทธิ์): ${studentName}`,
+              message: `ทำผิดกฎครบกำหนดแล้ว! (${violationLog?.detail || 'ละเมิดกฎการสอบ'}) ระบบล็อกหน้าจอทันที`,
+              priority: 2
+            });
+          } else if (isTimeUp) {
+            chrome.notifications.create(`timeup_${sessionId}_${Date.now()}`, {
+              type: "basic",
+              iconUrl: chrome.runtime.getURL("icon.png"),
+              title: `⌛ หมดเวลาสอบ: ${studentName}`,
+              message: `หมดเวลาทำข้อสอบแล้ว ระบบทำการล็อกหน้าจอและหยุดรับคำตอบ`,
+              priority: 1
+            });
+          } else if (violationLog) {
+            chrome.notifications.create(`warn_${sessionId}_${Date.now()}`, {
+              type: "basic",
+              iconUrl: chrome.runtime.getURL("icon.png"),
+              title: `⚠️ มีการละเมิดกฎ: ${studentName}`,
+              message: `${violationLog.detail} (ครั้งที่ ${violations})`,
+              priority: 1
+            });
+          }
+        } catch (e) {}
+      }
+
       sendResponse({ success: true });
     })();
     return true;

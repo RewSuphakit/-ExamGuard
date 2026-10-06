@@ -72,6 +72,55 @@ async function loadDashboardData() {
   renderTable();
 }
 
+let prevTerminatedCount = 0;
+let alertDismissed = false;
+
+function playAlertChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.45);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.45);
+  } catch (e) {}
+}
+
+function updateAlertBanner() {
+  const banner = document.getElementById("live-alert-banner");
+  const title = document.getElementById("live-alert-title");
+  const desc = document.getElementById("live-alert-desc");
+  if (!banner) return;
+
+  const terminatedSessions = allSessions.filter(s => s.status === "terminated");
+  if (terminatedSessions.length > 0 && !alertDismissed) {
+    const latest = terminatedSessions[0];
+    const lastLog = latest.logs && latest.logs.length > 0 ? latest.logs[latest.logs.length - 1].detail : "ทำผิดกฎการสอบครบกำหนด";
+    title.textContent = `🚨 ระงับการสอบ (ตัดสิทธิ์): ${latest.studentName || 'ผู้เข้าสอบ'} (${latest.studentId || '-'})`;
+    desc.textContent = `สาเหตุ: ${lastLog} | เวลา: ${formatTimeOnly(latest.terminatedAt)}`;
+    banner.style.display = "flex";
+
+    if (terminatedSessions.length > prevTerminatedCount) {
+      playAlertChime();
+    }
+  } else {
+    banner.style.display = "none";
+  }
+  prevTerminatedCount = terminatedSessions.length;
+}
+
+document.getElementById("btn-dismiss-alert")?.addEventListener("click", () => {
+  alertDismissed = true;
+  const banner = document.getElementById("live-alert-banner");
+  if (banner) banner.style.display = "none";
+});
+
 function updateMetrics() {
   const total = allSessions.length;
   const active = allSessions.filter(s => s.status === "active").length;
@@ -82,6 +131,8 @@ function updateMetrics() {
   document.getElementById("metric-active").textContent = active;
   document.getElementById("metric-warned").textContent = warned;
   document.getElementById("metric-terminated").textContent = terminated;
+
+  updateAlertBanner();
 }
 
 function renderTable() {
@@ -206,12 +257,18 @@ if (tableBody) {
   });
 }
 
-// Auto-refresh when storage changes
+// Auto-refresh when storage changes or periodic polling for live updates
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName === "local" && (changes.examGuard_sessions || changes.examGuard_active)) {
     loadDashboardData();
   }
 });
+
+setInterval(() => {
+  if (activeTab === "dashboard") {
+    loadDashboardData();
+  }
+}, 2500);
 
 // Modal Detail View
 function openDetailModal(sessionId) {

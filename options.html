@@ -507,6 +507,18 @@
 
     <!-- PANE 1: PROCTOR DASHBOARD -->
     <div class="tab-pane active" id="pane-dashboard">
+      <!-- Real-time Alert Banner -->
+      <div id="live-alert-banner" style="display: none; background: rgba(239, 68, 68, 0.18); border: 1px solid #ef4444; border-radius: 14px; padding: 14px 18px; margin-bottom: 20px; align-items: center; justify-content: space-between; gap: 14px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 26px;">🚨</span>
+          <div>
+            <div id="live-alert-title" style="font-weight: 800; color: #f87171; font-size: 15px;">ตรวจพบผู้เข้าสอบถูกระงับการสอบ!</div>
+            <div id="live-alert-desc" style="font-size: 13px; color: #fca5a5;">มีผู้ทำผิดกฎการสอบครบกำหนด</div>
+          </div>
+        </div>
+        <button type="button" id="btn-dismiss-alert" style="background: transparent; border: 1px solid rgba(239,68,68,0.5); color: #fca5a5; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px;">✕ ปิดการแจ้งเตือน</button>
+      </div>
+
       <!-- Metric Cards -->
       <div class="metrics-grid">
         <div class="metric-card">
