@@ -5,7 +5,29 @@
 async function loadPopupData() {
   // 1. Get all recorded sessions
   const data = await chrome.storage.local.get({ examGuard_sessions: [] });
-  const sessions = data.examGuard_sessions || [];
+  let sessions = data.examGuard_sessions || [];
+
+  // Proactively check all tabs for active Exam Guard sessions (GitHub Pages, Google Forms, etc.)
+  try {
+    const allTabs = await chrome.tabs.query({});
+    for (const t of allTabs) {
+      if (t.id && t.url && (t.url.includes("-ExamGuard") || t.url.includes("docs.google.com/forms") || t.url.includes("index.html"))) {
+        try {
+          const res = await chrome.tabs.sendMessage(t.id, { type: "GET_SESSION_STATUS" });
+          if (res && res.session) {
+            const s = res.session;
+            const idx = sessions.findIndex(item => item.sessionId === s.sessionId);
+            if (idx >= 0) {
+              sessions[idx] = Object.assign({}, sessions[idx], s);
+            } else {
+              sessions.unshift(s);
+            }
+          }
+        } catch (e) {}
+      }
+    }
+    await chrome.storage.local.set({ examGuard_sessions: sessions });
+  } catch (e) {}
 
   const total = sessions.length;
   const activeSessions = sessions.filter(s => s.status === "active");
@@ -42,9 +64,11 @@ async function loadPopupData() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab && tab.url) {
       const isGoogleForm = tab.url.includes("docs.google.com/forms");
+      const isGoogleFormEdit = isGoogleForm && tab.url.includes("/edit");
+      const isExamPortal = tab.url.includes("-ExamGuard") || (tab.url.includes("index.html") && tab.url.includes("form="));
       const gformBox = document.getElementById("gform-box");
       if (gformBox) {
-        gformBox.style.display = isGoogleForm ? "block" : "none";
+        gformBox.style.display = isGoogleFormEdit ? "block" : "none";
       }
 
       chrome.runtime.sendMessage({ type: "CHECK_EXAM_URL", url: tab.url }, async res => {
@@ -54,49 +78,62 @@ async function loadPopupData() {
         const tabStatus = document.getElementById("tab-status");
         const tabStudent = document.getElementById("tab-student");
 
-        if (res && res.active) {
+        const isActuallyActive = (res && res.active) || isExamPortal;
+
+        if (isActuallyActive) {
           tabStatus.textContent = "หน้าข้อสอบ (กำลังคุม)";
           tabStatus.className = "badge-status badge-active";
 
-          // Find current session matching this tab
-          const currentUrl = new URL(tab.url);
-          const currentKey = `examGuard_active:${currentUrl.origin}${currentUrl.pathname}`;
-          const keyData = await chrome.storage.local.get([currentKey]);
-          const activeSessionId = keyData[currentKey];
+          // Try to get live session directly from tab first
+          let currentSession = null;
+          try {
+            const tabRes = await chrome.tabs.sendMessage(tab.id, { type: "GET_SESSION_STATUS" });
+            if (tabRes && tabRes.session) currentSession = tabRes.session;
+          } catch (e) {}
 
-          if (activeSessionId) {
-            const currentSession = sessions.find(s => s.sessionId === activeSessionId);
-            if (currentSession) {
-              if (currentSession.status === "terminated") {
-                tabStatus.textContent = "🔴 ระงับการสอบแล้ว";
-                tabStatus.className = "badge-status badge-danger";
-              } else if (currentSession.status === "timeup") {
-                tabStatus.textContent = "⌛ หมดเวลาสอบแล้ว";
-                tabStatus.className = "badge-status badge-danger";
-              }
-              tabStudent.style.display = "block";
-              tabStudent.innerHTML = `ผู้สอบ: <b>${escapeHtml(currentSession.studentName)}</b> (${escapeHtml(currentSession.studentId)}) • ละเมิด: <b>${currentSession.violations}/${currentSession.maxViolations || 3}</b>`;
+          // Fallback to local storage lookup
+          if (!currentSession) {
+            const currentUrl = new URL(tab.url);
+            const currentKey = `examGuard_active:${currentUrl.origin}${currentUrl.pathname}`;
+            const keyData = await chrome.storage.local.get([currentKey]);
+            const activeSessionId = keyData[currentKey];
+            if (activeSessionId) {
+              currentSession = sessions.find(s => s.sessionId === activeSessionId);
+            } else {
+              currentSession = sessions.find(s => s.status === "active") || sessions[0];
+            }
+          }
 
-              const tabTimer = document.getElementById("tab-timer");
-              if (tabTimer) {
-                if (currentSession.enableTimer) {
-                  const durationMs = (currentSession.durationMinutes || 60) * 60 * 1000;
-                  const remainingMs = Math.max(0, (currentSession.startTime + durationMs) - Date.now());
-                  const mins = Math.floor(remainingMs / 60000);
-                  const secs = Math.floor((remainingMs % 60000) / 1000);
-                  const pad = n => String(n).padStart(2, "0");
-                  tabTimer.style.display = "block";
-                  tabTimer.innerHTML = remainingMs > 0
-                    ? `⏱️ เวลาที่เหลือ: ${pad(mins)}:${pad(secs)} นาที`
-                    : `⌛ หมดเวลาทำข้อสอบแล้ว`;
-                } else {
-                  tabTimer.style.display = "none";
-                }
+          if (currentSession) {
+            if (currentSession.status === "terminated") {
+              tabStatus.textContent = "🔴 ระงับการสอบแล้ว";
+              tabStatus.className = "badge-status badge-danger";
+            } else if (currentSession.status === "timeup") {
+              tabStatus.textContent = "⌛ หมดเวลาสอบแล้ว";
+              tabStatus.className = "badge-status badge-danger";
+            }
+            tabStudent.style.display = "block";
+            tabStudent.innerHTML = `ผู้สอบ: <b>${escapeHtml(currentSession.studentName)}</b> (${escapeHtml(currentSession.studentId)}) • ละเมิด: <b>${currentSession.violations || 0}/${currentSession.maxViolations || 3}</b>`;
+
+            const tabTimer = document.getElementById("tab-timer");
+            if (tabTimer) {
+              if (currentSession.enableTimer !== false) {
+                const durationMs = (currentSession.durationMinutes || 60) * 60 * 1000;
+                const remainingMs = Math.max(0, (currentSession.startTime + durationMs) - Date.now());
+                const mins = Math.floor(remainingMs / 60000);
+                const secs = Math.floor((remainingMs % 60000) / 1000);
+                const pad = n => String(n).padStart(2, "0");
+                tabTimer.style.display = "block";
+                tabTimer.innerHTML = remainingMs > 0
+                  ? `⏱️ เวลาที่เหลือ: ${pad(mins)}:${pad(secs)} นาที`
+                  : `⌛ หมดเวลาทำข้อสอบแล้ว`;
+              } else {
+                tabTimer.style.display = "none";
               }
             }
           }
         } else {
-          if (isGoogleForm) {
+          if (isGoogleFormEdit) {
             tabStatus.textContent = "หน้าสร้าง Google Form";
             tabStatus.className = "badge-status";
             tabStatus.style.background = "rgba(124, 58, 237, 0.25)";

@@ -79,14 +79,42 @@
   let lastBlurViolationTime = 0;
 
   function notifyExtension(type, data) {
-    try {
-      window.postMessage({
-        source: "EXAM_GUARD_WEB",
-        type: type,
-        data: data
-      }, "*");
-    } catch (e) {}
+    const dispatch = () => {
+      try {
+        window.postMessage({
+          source: "EXAM_GUARD_WEB",
+          type: type,
+          data: data
+        }, "*");
+      } catch (e) {}
+    };
+    dispatch();
+    setTimeout(dispatch, 400);
+    setTimeout(dispatch, 1200);
   }
+
+  // Auto-respond to extension handshake/ping
+  window.addEventListener("message", ev => {
+    if (!ev.data) return;
+    if (ev.data.type === "EXAM_GUARD_HANDSHAKE" || ev.data.type === "EXAM_GUARD_PING" || ev.data.type === "EXAM_GUARD_PONG") {
+      if (sessionData && (started || sessionData.status === "active")) {
+        notifyExtension("REGISTER_SESSION", {
+          sessionId: `web_${sessionData.studentId}_${sessionData.startTime}`,
+          studentName: sessionData.studentName,
+          studentId: sessionData.studentId,
+          seatNumber: sessionData.seatNumber,
+          startTime: sessionData.startTime,
+          violations: sessionData.violations || 0,
+          maxViolations: config.maxViolations,
+          durationMinutes: sessionData.durationMinutes || config.examDurationMinutes,
+          status: sessionData.status || "active",
+          enableTimer: config.enableTimer,
+          examTitle: config.examTitle,
+          logs: sessionData.logs || []
+        });
+      }
+    }
+  });
 
   // ==========================================================================
   // 1. INJECT STYLES (สร้างสไตล์ทั้งหมดในตัว ไม่ต้องโหลดไฟล์ CSS แยก)
@@ -185,7 +213,26 @@
       #egw-timer-widget.egw-timer-warning #egw-timer-clock { color: #fbbf24 !important; }
       #egw-timer-widget.egw-timer-critical { border-color: #ef4444 !important; animation: egwPulse 1.5s infinite; }
       #egw-timer-widget.egw-timer-critical #egw-timer-clock { color: #f87171 !important; }
+
       @keyframes egwPulse {
+        0%, 100% { transform: translateX(-50%) scale(1); }
+        50% { transform: translateX(-50%) scale(1.05); }
+      }
+
+      @keyframes egwFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      ::selection {
+        background: transparent !important;
+        color: inherit !important;
+      }
+      ::-moz-selection {
+        background: transparent !important;
+        color: inherit !important;
+      }
+
       /* Warning Modal */
       #egw-warning-overlay {
         position: fixed !important; inset: 0 !important; z-index: 2147483646 !important;
@@ -717,14 +764,15 @@
     if (document.getElementById("egw-camera-box")) return;
     const box = document.createElement("div");
     box.id = "egw-camera-box";
+    box.style.cssText = "position: fixed !important; bottom: 20px !important; left: 20px !important; width: 160px !important; height: 120px !important; border-radius: 14px !important; overflow: hidden !important; background: #000 !important; border: 2px solid #3b82f6 !important; box-shadow: 0 10px 25px rgba(0,0,0,0.6) !important; z-index: 2147483643 !important; user-select: none !important; display: block !important;";
     box.innerHTML = `
-      <div id="egw-camera-badge">📷 CAM</div>
-      <div id="egw-camera-placeholder" style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; color:#cbd5e1; text-align:center; padding:6px; box-sizing:border-box;">
+      <div id="egw-camera-badge" style="position: absolute !important; top: 6px !important; left: 6px !important; background: rgba(0,0,0,0.75) !important; color: #f87171 !important; font-size: 10px !important; font-weight: 700 !important; padding: 2px 6px !important; border-radius: 6px !important; z-index: 3 !important; display: flex !important; align-items: center !important; gap: 4px !important;">📷 CAM</div>
+      <div id="egw-camera-placeholder" style="width:100% !important; height:100% !important; display:flex !important; flex-direction:column !important; align-items:center !important; justify-content:center !important; font-size:11px !important; color:#cbd5e1 !important; text-align:center !important; padding:6px !important; box-sizing:border-box !important;">
         <span>กำลังเชื่อมต่อกล้อง...</span>
       </div>
-      <video id="egw-camera-video" autoplay playsinline muted></video>
+      <video id="egw-camera-video" autoplay playsinline muted style="width:100% !important; height:100% !important; object-fit:cover !important; transform:scaleX(-1) !important; display:block !important;"></video>
     `;
-    document.body.appendChild(box);
+    (document.body || document.documentElement).appendChild(box);
     const v = document.getElementById("egw-camera-video");
     if (v && cameraStream) {
       v.srcObject = cameraStream;

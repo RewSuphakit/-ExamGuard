@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Exam Guard - URL Trigger",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Anti-cheat Chrome Extension activated only on configured exam URLs with Proctor Lockdown.",
   "permissions": ["storage", "tabs"],
   "host_permissions": ["<all_urls>"],

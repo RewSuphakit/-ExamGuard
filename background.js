@@ -12,6 +12,8 @@ const DEFAULTS = {
   examPatterns: [
     "*docs.google.com/forms/*/viewform*",
     "*docs.google.com/forms/*/formResponse*",
+    "*rewsuphakit.github.io/-ExamGuard/*",
+    "*index.html*form=*",
     "https://your-exam.example.com/exam/*"
   ]
 };
@@ -25,6 +27,9 @@ chrome.runtime.onInstalled.addListener(async () => {
     // Ensure Google Forms patterns exist in examPatterns
     if (!current.examPatterns.some(p => p.includes("docs.google.com/forms"))) {
       current.examPatterns.unshift("*docs.google.com/forms/*/viewform*");
+    }
+    if (!current.examPatterns.some(p => p.includes("-ExamGuard"))) {
+      current.examPatterns.push("*rewsuphakit.github.io/-ExamGuard/*");
     }
   }
   if (!current.maxViolations) current.maxViolations = DEFAULTS.maxViolations;
@@ -62,6 +67,11 @@ async function isExamUrl(url) {
 
   // Auto-protect Google Forms viewform/test pages
   if (url.includes("docs.google.com/forms") && (url.includes("/viewform") || url.includes("/formResponse"))) {
+    return true;
+  }
+
+  // Auto-protect Exam Guard Web Portal (GitHub Pages or local portal)
+  if (url.includes("-ExamGuard") || url.includes("exam-guard") || (url.includes("index.html") && url.includes("form="))) {
     return true;
   }
 
@@ -135,16 +145,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "REGISTER_SESSION") {
     (async () => {
       const { session } = msg;
+      if (!session) return sendResponse({ success: false });
+
       const data = await chrome.storage.local.get({ examGuard_sessions: [] });
       let sessions = data.examGuard_sessions || [];
       // Replace existing session with same ID or add new
       const idx = sessions.findIndex(s => s.sessionId === session.sessionId);
       if (idx >= 0) {
-        sessions[idx] = session;
+        sessions[idx] = Object.assign({}, sessions[idx], session);
       } else {
         sessions.unshift(session);
       }
-      await chrome.storage.local.set({ examGuard_sessions: sessions });
+
+      const toStore = { examGuard_sessions: sessions };
+
+      // Set active session key for caller tab if available
+      if (sender && sender.tab && sender.tab.url) {
+        try {
+          const u = new URL(sender.tab.url);
+          toStore[`examGuard_active:${u.origin}${u.pathname}`] = session.sessionId;
+        } catch (e) {}
+      }
+
+      await chrome.storage.local.set(toStore);
       await updateBadge();
       sendResponse({ success: true });
     })();

@@ -23,9 +23,75 @@
   let isTimeUp = false;
   let violations = 0;
 
-  // Listen for Ping from webpage detector scripts
+  // Global Chrome Runtime Message Listener for All Tabs/Frames
+  chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
+    if (req.type === "GET_SESSION_STATUS" || req.action === "GET_SESSION_STATUS") {
+      // 1. If content.js itself has active sessionData
+      if (sessionData) {
+        sendResponse({ session: sessionData });
+        return true;
+      }
+      // 2. If running on Exam Guard Web page, read from localStorage
+      try {
+        const raw = localStorage.getItem(`eg_web_${location.origin}${location.pathname}`);
+        if (raw) {
+          const webSession = JSON.parse(raw);
+          sendResponse({
+            session: {
+              sessionId: `web_${webSession.studentId}_${webSession.startTime}`,
+              studentName: webSession.studentName,
+              studentId: webSession.studentId,
+              seatNumber: webSession.seatNumber,
+              startTime: webSession.startTime,
+              violations: webSession.violations || 0,
+              maxViolations: maxViolations,
+              durationMinutes: webSession.durationMinutes || 60,
+              status: webSession.status || "active",
+              enableTimer: true,
+              examTitle: document.title,
+              logs: webSession.logs || []
+            }
+          });
+          return true;
+        }
+      } catch (e) {}
+
+      sendResponse({ session: null });
+      return true;
+    }
+
+    if (req.action === "OPEN_GFORM_SIDEBAR") {
+      if (typeof openGoogleFormsSidebar === "function") {
+        openGoogleFormsSidebar();
+        sendResponse({ success: true });
+      }
+      return true;
+    }
+
+    if (req.type === "EXAM_URL_STATUS" && req.active) {
+      active = true;
+      document.documentElement.setAttribute("data-exam-guard-active", "true");
+      window.postMessage({ type: "EXAM_GUARD_STATUS_UPDATE", active: true, version: "2.3.0" }, "*");
+      if (req.config) {
+        maxViolations = req.config.maxViolations || maxViolations;
+        proctorPin = req.config.proctorPin || proctorPin;
+        requireStudentInfo = req.config.requireStudentInfo ?? requireStudentInfo;
+        enableTimer = req.config.enableTimer ?? enableTimer;
+        examDurationMinutes = req.config.examDurationMinutes || examDurationMinutes;
+      }
+      if (!started && !isTerminated && !isTimeUp) {
+        initSessionOrShowGate();
+      }
+      sendResponse({ success: true });
+      return true;
+    }
+  });
+
+  // Listen for Ping and Web Portal events
   window.addEventListener("message", event => {
-    if (event.data && event.data.type === "EXAM_GUARD_PING") {
+    if (!event.data) return;
+
+    if (event.data.type === "EXAM_GUARD_PING") {
       window.postMessage({
         type: "EXAM_GUARD_PONG",
         version: "2.3.0",
@@ -41,7 +107,7 @@
     }
 
     // Bridge messages from standalone exam-guard-web.js into Chrome extension
-    if (event.data && event.data.source === "EXAM_GUARD_WEB") {
+    if (event.data.source === "EXAM_GUARD_WEB") {
       if (event.data.type === "REGISTER_SESSION") {
         chrome.runtime.sendMessage({
           type: "REGISTER_SESSION",
@@ -57,16 +123,72 @@
     }
   });
 
-  // If running inside Google Forms (viewform / formResponse), enforce anti-copy & no-select directly inside the form!
+  // Enforce Anti-Copy & Anti-Selection inside Google Forms (viewform / formResponse)
   if (location.hostname.includes("docs.google.com") && location.pathname.includes("/forms/") && !location.pathname.includes("/edit")) {
-    document.addEventListener("selectstart", e => e.preventDefault(), true);
-    document.addEventListener("copy", e => { e.preventDefault(); e.stopPropagation(); }, true);
-    document.addEventListener("cut", e => { e.preventDefault(); e.stopPropagation(); }, true);
-    document.addEventListener("contextmenu", e => { e.preventDefault(); e.stopPropagation(); }, true);
+    const preventAction = e => {
+      const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
+      if ((tag === "input" || tag === "textarea") && (e.type === "selectstart" || e.type === "keydown")) {
+        return; // Allow entering text in text answers
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.clipboardData) e.clipboardData.setData("text/plain", "");
+      return false;
+    };
 
-    const noSelectStyle = document.createElement("style");
-    noSelectStyle.textContent = "* { -webkit-user-select: none !important; user-select: none !important; }";
-    (document.head || document.documentElement).appendChild(noSelectStyle);
+    window.addEventListener("selectstart", preventAction, true);
+    document.addEventListener("selectstart", preventAction, true);
+    window.addEventListener("copy", preventAction, true);
+    document.addEventListener("copy", preventAction, true);
+    window.addEventListener("cut", preventAction, true);
+    document.addEventListener("cut", preventAction, true);
+    window.addEventListener("contextmenu", preventAction, true);
+    document.addEventListener("contextmenu", preventAction, true);
+    window.addEventListener("dragstart", preventAction, true);
+    document.addEventListener("dragstart", preventAction, true);
+
+    window.addEventListener("mouseup", () => {
+      try {
+        const sel = window.getSelection();
+        if (sel && sel.toString().trim()) {
+          sel.removeAllRanges();
+        }
+      } catch (e) {}
+    }, true);
+
+    function injectAntiSelectStyles() {
+      const id = "eg-google-form-no-select";
+      if (document.getElementById(id)) return;
+      const st = document.createElement("style");
+      st.id = id;
+      st.textContent = `
+        html, body, div, span, p, label, form, table, tbody, tr, td, h1, h2, h3, h4, [role="heading"], [role="radio"], [role="checkbox"] {
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+          -ms-user-select: none !important;
+          user-select: none !important;
+          -webkit-touch-callout: none !important;
+        }
+        input, textarea, [contenteditable="true"] {
+          -webkit-user-select: text !important;
+          user-select: text !important;
+        }
+        ::selection {
+          background: transparent !important;
+          color: inherit !important;
+        }
+        ::-moz-selection {
+          background: transparent !important;
+          color: inherit !important;
+        }
+      `;
+      (document.head || document.documentElement).appendChild(st);
+    }
+
+    injectAntiSelectStyles();
+    document.addEventListener("DOMContentLoaded", injectAntiSelectStyles);
+    window.addEventListener("load", injectAntiSelectStyles);
+    setInterval(injectAntiSelectStyles, 2000);
   }
   let maxViolations = 3;
   let proctorPin = "1234";
