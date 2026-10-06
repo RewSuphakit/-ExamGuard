@@ -1420,6 +1420,68 @@
 
     document.body.appendChild(sidebar);
 
+    // Persistent configuration management
+    function getSidebarConfig() {
+      return {
+        timerOn: document.getElementById("eg-gf-chk-timer")?.checked ?? true,
+        duration: document.getElementById("eg-gf-val-timer")?.value || "60",
+        violOn: document.getElementById("eg-gf-chk-viol")?.checked ?? true,
+        maxViol: document.getElementById("eg-gf-val-viol")?.value || "3",
+        autoOn: document.getElementById("eg-gf-chk-auto")?.checked ?? true,
+        camOn: document.getElementById("eg-gf-chk-cam")?.checked ?? false,
+        tabOn: document.getElementById("eg-gf-chk-tab")?.checked ?? true,
+        copyOn: document.getElementById("eg-gf-chk-copy")?.checked ?? true,
+        fsOn: document.getElementById("eg-gf-chk-fs")?.checked ?? true,
+        wmOn: document.getElementById("eg-gf-chk-wm")?.checked ?? true,
+        mode: document.getElementById("eg-gf-mode")?.value || "anonymous"
+      };
+    }
+
+    function saveSidebarConfig() {
+      const cfg = getSidebarConfig();
+      try {
+        localStorage.setItem("eg_gform_sidebar_settings", JSON.stringify(cfg));
+      } catch (e) {}
+
+      // Sync with Chrome Extension storage
+      if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({
+          enableTimer: cfg.timerOn,
+          examDurationMinutes: parseInt(cfg.duration, 10) || 60,
+          maxViolations: cfg.violOn ? (parseInt(cfg.maxViol, 10) || 3) : 99,
+          requireStudentInfo: cfg.mode === "restricted"
+        }).catch(() => {});
+      }
+    }
+
+    function restoreSidebarConfig() {
+      try {
+        const raw = localStorage.getItem("eg_gform_sidebar_settings");
+        if (!raw) return;
+        const cfg = JSON.parse(raw);
+        if (document.getElementById("eg-gf-chk-timer") && cfg.timerOn !== undefined) document.getElementById("eg-gf-chk-timer").checked = cfg.timerOn;
+        if (document.getElementById("eg-gf-val-timer") && cfg.duration) document.getElementById("eg-gf-val-timer").value = cfg.duration;
+        if (document.getElementById("eg-gf-chk-viol") && cfg.violOn !== undefined) document.getElementById("eg-gf-chk-viol").checked = cfg.violOn;
+        if (document.getElementById("eg-gf-val-viol") && cfg.maxViol) document.getElementById("eg-gf-val-viol").value = cfg.maxViol;
+        if (document.getElementById("eg-gf-chk-auto") && cfg.autoOn !== undefined) document.getElementById("eg-gf-chk-auto").checked = cfg.autoOn;
+        if (document.getElementById("eg-gf-chk-cam") && cfg.camOn !== undefined) document.getElementById("eg-gf-chk-cam").checked = cfg.camOn;
+        if (document.getElementById("eg-gf-chk-tab") && cfg.tabOn !== undefined) document.getElementById("eg-gf-chk-tab").checked = cfg.tabOn;
+        if (document.getElementById("eg-gf-chk-copy") && cfg.copyOn !== undefined) document.getElementById("eg-gf-chk-copy").checked = cfg.copyOn;
+        if (document.getElementById("eg-gf-chk-fs") && cfg.fsOn !== undefined) document.getElementById("eg-gf-chk-fs").checked = cfg.fsOn;
+        if (document.getElementById("eg-gf-chk-wm") && cfg.wmOn !== undefined) document.getElementById("eg-gf-chk-wm").checked = cfg.wmOn;
+        if (document.getElementById("eg-gf-mode") && cfg.mode) document.getElementById("eg-gf-mode").value = cfg.mode;
+      } catch (e) {}
+    }
+
+    // Restore saved settings into sidebar controls
+    restoreSidebarConfig();
+
+    // Listen to all inputs to save immediately on change
+    sidebar.querySelectorAll("input, select").forEach(el => {
+      el.addEventListener("change", saveSidebarConfig);
+      el.addEventListener("input", saveSidebarConfig);
+    });
+
     // Close button
     document.getElementById("eg-gf-close").onclick = () => {
       sidebar.style.display = "none";
@@ -1431,40 +1493,31 @@
       let viewUrl = rawUrl.replace(/\/edit.*$/, "/viewform");
       if (!viewUrl.includes("/viewform")) viewUrl += "/viewform";
 
-      const timerOn = document.getElementById("eg-gf-chk-timer").checked;
-      const duration = document.getElementById("eg-gf-val-timer").value;
-      const violOn = document.getElementById("eg-gf-chk-viol").checked;
-      const maxViol = document.getElementById("eg-gf-val-viol").value;
-      const autoOn = document.getElementById("eg-gf-chk-auto").checked;
-      const camOn = document.getElementById("eg-gf-chk-cam").checked;
-      const tabOn = document.getElementById("eg-gf-chk-tab").checked;
-      const copyOn = document.getElementById("eg-gf-chk-copy").checked;
-      const fsOn = document.getElementById("eg-gf-chk-fs").checked;
-      const wmOn = document.getElementById("eg-gf-chk-wm").checked;
-      const mode = document.getElementById("eg-gf-mode").value;
+      const cfg = getSidebarConfig();
 
       // Use GitHub Pages public portal URL so students can take the exam without installing any extension!
       const portalBase = "https://rewsuphakit.github.io/-ExamGuard/index.html";
       const url = new URL(portalBase);
       url.searchParams.set("form", viewUrl);
-      url.searchParams.set("timer", timerOn ? duration : "0");
-      url.searchParams.set("autoSubmit", autoOn ? "1" : "0");
-      url.searchParams.set("camera", camOn ? "1" : "0");
-      url.searchParams.set("tab", tabOn ? "1" : "0");
-      url.searchParams.set("fullscreen", fsOn ? "1" : "0");
-      url.searchParams.set("copy", copyOn ? "1" : "0");
-      url.searchParams.set("watermark", wmOn ? "1" : "0");
-      url.searchParams.set("studentInfo", mode === "restricted" ? "1" : "0");
-      url.searchParams.set("violations", violOn ? maxViol : "99");
+      url.searchParams.set("timer", cfg.timerOn ? cfg.duration : "0");
+      url.searchParams.set("autoSubmit", cfg.autoOn ? "1" : "0");
+      url.searchParams.set("camera", cfg.camOn ? "1" : "0");
+      url.searchParams.set("tab", cfg.tabOn ? "1" : "0");
+      url.searchParams.set("fullscreen", cfg.fsOn ? "1" : "0");
+      url.searchParams.set("copy", cfg.copyOn ? "1" : "0");
+      url.searchParams.set("watermark", cfg.wmOn ? "1" : "0");
+      url.searchParams.set("studentInfo", cfg.mode === "restricted" ? "1" : "0");
+      url.searchParams.set("violations", cfg.violOn ? cfg.maxViol : "99");
 
       return url.href;
     }
 
     // Copy Button
     document.getElementById("eg-gf-btn-copy").onclick = () => {
+      saveSidebarConfig();
       const link = getGeneratedStudentUrl();
       navigator.clipboard.writeText(link).then(() => {
-        alert("✅ คัดลอกลิงก์สอบเรียบร้อยแล้ว!\n\nลิงก์นี้มีระบบจับเวลา ลายน้ำ กล้องเว็บแคม และบล็อกการทุจริตครบถ้วน ส่งให้นักเรียนเข้าสอบได้ทันทีโดยนักเรียนไม่ต้องติดตั้งส่วนขยายใดๆ");
+        alert("✅ คัดลอกลิงก์สอบพร้อมระบบป้องกันเรียบร้อยแล้ว!\n\nลิงก์นี้ถูกกำหนดค่าตามที่คุณเลือกไว้ (จับเวลา, บล็อกคัดลอก, เต็มจอ ฯลฯ) ครบถ้วน นำไปส่งให้นักเรียนเริ่มสอบได้ทันทีครับ\n\n(หมายเหตุ: หน้าแก้ไขข้อสอบที่คุณครูกำลังอยู่นี้จะไม่ถูกบล็อก เพื่อให้คุณครูพิมพ์คำถามได้ตามปกติ)");
       }).catch(() => {
         prompt("คัดลอกลิงก์ส่งให้นักเรียน:", link);
       });
@@ -1472,6 +1525,7 @@
 
     // Preview Button (Open via background service worker to prevent ERR_BLOCKED_BY_CLIENT)
     document.getElementById("eg-gf-btn-preview").onclick = () => {
+      saveSidebarConfig();
       const link = getGeneratedStudentUrl();
       chrome.runtime.sendMessage({ type: "OPEN_TAB", url: link });
     };
