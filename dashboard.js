@@ -40,6 +40,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!formUrlInput || !formFrame) return;
     let raw = formUrlInput.value.trim();
     if (!raw) return;
+    // Automatically convert /edit to /viewform because Google Forms editor CANNOT be embedded in iframes
+    if (raw.includes("docs.google.com/forms") && raw.includes("/edit")) {
+      raw = raw.replace(/\/edit.*$/, "/viewform");
+      formUrlInput.value = raw;
+    }
     if (raw.includes("docs.google.com/forms") && !raw.includes("embedded=true")) {
       raw += (raw.includes("?") ? "&" : "?") + "embedded=true";
     }
@@ -69,7 +74,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function generateStudentLink() {
-    const formUrl = formUrlInput ? formUrlInput.value.trim() : "";
+    let formUrl = formUrlInput ? formUrlInput.value.trim() : "";
+    if (formUrl.includes("docs.google.com/forms") && formUrl.includes("/edit")) {
+      formUrl = formUrl.replace(/\/edit.*$/, "/viewform");
+    }
     const timerOn = toggleTimer ? toggleTimer.checked : true;
     const duration = inputTimer ? inputTimer.value : "60";
     const violationsOn = toggleViolations ? toggleViolations.checked : true;

@@ -3,8 +3,9 @@
 // ==========================================================================
 
 (() => {
-  // Prevent duplicate execution
+  // Prevent duplicate execution or running on chrome-extension internal pages
   if (window.__examGuardInjected) return;
+  if (location.protocol === "chrome-extension:") return;
   window.__examGuardInjected = true;
 
   // ==========================================================================
