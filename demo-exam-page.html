@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <title>แบบทดสอบวัดความรู้ทั่วไป (Exam Guard Web Demo)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- =====================================================================
+       Exam Guard Web (Standalone - ไม่ต้องติดตั้งส่วนขยายใดๆ ทั้งสิ้น)
+       เพียงใส่แท็ก <script src="exam-guard-web.js"></script> 
+       ผู้สอบเปิดเว็บปุ๊บ ระบบคุมสอบ + ลายน้ำ + จับเวลา + ล็อกหน้าจอจะทำงานทันที!
+       ===================================================================== -->
+  <script src="demo-exam.js"></script>
+  <script src="exam-guard-web.js"></script>
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --primary: #3b82f6;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 60px 20px 40px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .exam-wrapper {
+      max-width: 760px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 36px 32px;
+      box-shadow: 0 15px 45px rgba(0,0,0,0.4);
+    }
+    .exam-header {
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 20px;
+      margin-bottom: 28px;
+    }
+    .badge-protected {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #059669;
+      color: #34d399;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    p.desc { margin: 0; color: var(--text-muted); font-size: 14px; }
+    .question-box {
+      background: #0b1324;
+      border: 1px solid #1e2e4f;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .q-title {
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 14px;
+      color: #93c5fd;
+      line-height: 1.5;
+    }
+    .choice-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: #131d33;
+      margin-bottom: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.15s;
+    }
+    .choice-label:hover { background: #1c2b4d; }
+    .btn-submit {
+      width: 100%;
+      padding: 15px;
+      border-radius: 12px;
+      border: 0;
+      background: var(--primary);
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.15s;
+    }
+    .btn-submit:hover { background: #2563eb; }
+
+    /* Teacher / Tester Toolbar */
+    .tester-toolbar {
+      max-width: 760px;
+      margin: 25px auto 0;
+      padding: 16px 20px;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px dashed #475569;
+      border-radius: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .toolbar-btns {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-tool {
+      background: #334155;
+      color: #fff;
+      border: 0;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.15s;
+    }
+    .btn-tool:hover { background: #475569; }
+    .btn-tool-danger { background: #7f1d1d; }
+    .btn-tool-danger:hover { background: #991b1b; }
+  </style>
+</head>
+<body>
+
+  <div class="exam-wrapper" id="exam-container">
+    <div class="exam-header">
+      <div class="badge-protected">🛡️ คุ้มครองด้วย Exam Guard Web (Zero Extension)</div>
+      <h1>แบบทดสอบวัดความรู้ทั่วไปประจำปีการศึกษา</h1>
+      <p class="desc">คำชี้แจง: มีทั้งหมด 3 ข้อ จงเลือกคำตอบที่ถูกต้องที่สุด ห้ามสลับแท็บ ย่อเบราว์เซอร์ หรือคัดลอกข้อความ</p>
+    </div>
+
+    <!-- ข้อที่ 1 -->
+    <div class="question-box">
+      <div class="q-title">ข้อที่ 1: ระบบ Exam Guard Web ช่วยคุมสอบออนไลน์อย่างไรโดยไม่ต้องติดตั้ง Extension?</div>
+      <label class="choice-label">
+        <input type="radio" name="q1" value="1"> ก. ต้องติดตั้งแอปพลิเคชันเสริมลงในเครื่องคอมพิวเตอร์ก่อน
+      </label>
+      <label class="choice-label">
+        <input type="radio" name="q1" value="2"> ข. ทำงานผ่าน JavaScript ในหน้าเว็บโดยตรง ตรวจจับสลับแท็บ คัดลอก ย่อหน้าต่าง และจับเวลาได้ทันทีทุกเบราว์เซอร์
+      </label>
+      <label class="choice-label">
+        <input type="radio" name="q1" value="3"> ค. ส่งข้อสอบไปตรวจที่สำนักงานใหญ่ด้วยไปรษณีย์
+      </label>
+    </div>
+
+    <!-- ข้อที่ 2 -->
+    <div class="question-box">
+      <div class="q-title">ข้อที่ 2: หากผู้สอบพยายามกด Ctrl+C รัวๆ หรือลากคลุมข้อความ ระบบจะจัดการอย่างไร?</div>
+      <label class="choice-label">
+        <input type="radio" name="q1" value="1"> ก. ตัดสิทธิ์การสอบทันทีภายในเสี้ยววินาที
+      </label>
+      <label class="choice-label">
+        <input type="radio" name="q2" value="2"> ข. ลากคลุมข้อความถูกบล็อก (ไม่ตัดสิทธิ์), ส่วน Ctrl+C มี Cooldown 2.5 วินาที นับเพียง 1 ครั้ง ไม่เด้งรัว
+      </label>
+      <label class="choice-label">
+        <input type="radio" name="q2" value="3"> ค. ปล่อยให้คัดลอกได้ตามปกติ
+      </label>
+    </div>
+
+    <!-- ข้อที่ 3 -->
+    <div class="question-box">
+      <div class="q-title">ข้อที่ 3: หากผู้สอบทำผิดกฎสะสมครบ 3 ครั้ง หรือหมดเวลาสอบ จะเกิดอะไรขึ้น?</div>
+      <label class="choice-label">
+        <input type="radio" name="q3" value="1"> ก. หน้าจอจะล็อกถาวรทันที (กด F5 ก็ไม่หาย) ต้องให้อาจารย์ใส่รหัส PIN เพื่อปลดล็อก
+      </label>
+      <label class="choice-label">
+        <input type="radio" name="q3" value="2"> ข. ปิดเบราว์เซอร์แล้วเปิดใหม่ ข้อสอบจะเริ่มทำใหม่ตั้งแต่ต้น
+      </label>
+      <label class="choice-label">
+        <input type="radio" name="q3" value="3"> ค. ระบบจะให้โอกาสทำข้อสอบต่อเรื่อยๆ ไม่จำกัด
+      </label>
+    </div>
+
+    <button type="button" class="btn-submit" id="btn-submit-exam">
+      ยืนยันและส่งข้อสอบ
+    </button>
+  </div>
+
+  <!-- เครื่องมือสำหรับผู้คุมสอบ / ผู้ทดสอบ -->
+  <div class="tester-toolbar">
+    <div>⚙️ <strong>แผงควบคุมผู้คุมสอบ (Proctor Tools):</strong> รหัส PIN เริ่มต้นคือ <code>1234</code></div>
+    <div class="toolbar-btns">
+      <a href="index.html" class="btn-tool" style="background:#2563eb; text-decoration:none; display:inline-flex; align-items:center;">📝 เปิดโหมดคุมสอบ Google Forms</a>
+      <button type="button" class="btn-tool" id="btn-demo-export">📥 ดาวน์โหลดรายงาน (CSV)</button>
+      <button type="button" class="btn-tool btn-tool-danger" id="btn-demo-reset">🔄 รีเซ็ตการสอบใหม่</button>
+    </div>
+  </div>
+
+</body>
+</html>

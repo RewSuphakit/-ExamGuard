@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <title>Exam Guard - แดชบอร์ดผู้คุมสอบ & การตั้งค่า</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --bg: #090e1a;
+      --card-bg: #111a2e;
+      --card-border: #1e293b;
+      --card-hover: #17233d;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --danger-border: #b91c1c;
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.12);
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.12);
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px 20px 60px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .header-icon {
+      font-size: 38px;
+    }
+
+    .header-title h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .header-title p {
+      margin: 4px 0 0;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      background: #0f172a;
+      padding: 6px;
+      border-radius: 14px;
+      border: 1px solid var(--card-border);
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: 0;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab-btn:hover {
+      color: #fff;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    /* Tab Content Panes */
+    .tab-pane {
+      display: none;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Metric Cards */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 20px 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-card.danger-highlight {
+      border-color: #ef4444;
+      background: linear-gradient(145deg, #18101e, #230c14);
+      box-shadow: 0 8px 30px rgba(239, 68, 68, 0.2);
+    }
+
+    .metric-val {
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+
+    .metric-label {
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .metric-desc {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    /* Controls Bar */
+    .controls-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 14px 18px;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      flex: 1;
+    }
+
+    .search-input {
+      background: #090e1a;
+      border: 1px solid #334155;
+      color: white;
+      padding: 9px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      min-width: 260px;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+    }
+
+    .filter-select {
+      background: #090e1a;
+      border: 1px solid #334155;
+      color: white;
+      padding: 9px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .actions-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 9px 16px;
+      border-radius: 10px;
+      border: 0;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: #1e293b; color: #cbd5e1; }
+    .btn-secondary:hover { background: #334155; color: white; }
+    .btn-danger { background: var(--danger-bg); color: #f87171; border: 1px solid var(--danger-border); }
+    .btn-danger:hover { background: #ef4444; color: white; }
+
+    /* Table */
+    .table-container {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    th {
+      background: #0f172a;
+      color: var(--text-muted);
+      font-weight: 700;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--card-border);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid #1a243b;
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr.row-terminated {
+      background: rgba(239, 68, 68, 0.06);
+    }
+
+    tr:hover {
+      background: var(--card-hover);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .badge-term {
+      background: var(--danger-bg);
+      color: #f87171;
+      border: 1px solid var(--danger-border);
+    }
+
+    .badge-warn {
+      background: var(--warning-bg);
+      color: #fbbf24;
+      border: 1px solid #d97706;
+    }
+
+    .badge-ok {
+      background: var(--success-bg);
+      color: #34d399;
+      border: 1px solid #059669;
+    }
+
+    .action-btn-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-xs {
+      padding: 5px 9px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #cbd5e1;
+    }
+
+    .btn-xs:hover {
+      background: #334155;
+      color: white;
+    }
+
+    .btn-xs-unlock {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: #059669;
+      color: #34d399;
+    }
+    .btn-xs-unlock:hover {
+      background: #10b981;
+      color: white;
+    }
+
+    /* Empty state */
+    .empty-state {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .empty-icon { font-size: 42px; margin-bottom: 12px; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal {
+      background: #111a2e;
+      border: 1px solid #283755;
+      border-radius: 20px;
+      width: min(620px, 96vw);
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6);
+      animation: fadeIn 0.2s ease;
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: 0;
+      color: var(--text-muted);
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .modal-close:hover { color: white; }
+
+    .modal-body {
+      padding: 20px 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid #1e293b;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Settings Box */
+    .settings-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .settings-group {
+      margin-bottom: 24px;
+    }
+
+    .settings-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .settings-group input,
+    .settings-group textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      background: #090e1a;
+      color: white;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .settings-group textarea {
+      height: 140px;
+      line-height: 1.6;
+    }
+
+    .settings-group input:focus,
+    .settings-group textarea:focus {
+      border-color: var(--primary);
+    }
+
+    .settings-hint {
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-label input {
+      width: 18px;
+      height: 18px;
+    }
+
+    #save-msg {
+      margin-top: 14px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <span class="header-icon">🛡️</span>
+        <div class="header-title">
+          <h1>Exam Guard Dashboard</h1>
+          <p>ระบบคุมสอบ ตรวจจับการทุจริต และรายงานผู้ทำผิดกฎเกินกำหนด</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-btn-dashboard">
+          📊 แดชบอร์ดผู้คุมสอบ
+        </button>
+        <button class="tab-btn" id="tab-btn-settings">
+          ⚙️ ตั้งค่าระบบ
+        </button>
+      </div>
+    </div>
+
+    <!-- PANE 1: PROCTOR DASHBOARD -->
+    <div class="tab-pane active" id="pane-dashboard">
+      <!-- Metric Cards -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-val" id="metric-total" style="color: #60a5fa;">0</div>
+          <div class="metric-label">ผู้เข้าสอบทั้งหมด</div>
+          <div class="metric-desc">เซสชันทั้งหมดที่ถูกบันทึก</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-val" id="metric-active" style="color: #34d399;">0</div>
+          <div class="metric-label">กำลังทำข้อสอบ</div>
+          <div class="metric-desc">สถานะปกติ อยู่ในการสอบ</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-val" id="metric-warned" style="color: #fbbf24;">0</div>
+          <div class="metric-label">มีการเตือนละเมิด</div>
+          <div class="metric-desc">ทำผิดกฎ 1 ครั้งขึ้นไป</div>
+        </div>
+
+        <div class="metric-card danger-highlight">
+          <div class="metric-val" id="metric-terminated" style="color: #f87171;">0</div>
+          <div class="metric-label" style="color: #fca5a5;">🔴 ระเมิดเกินกำหนด (ตัดสิทธิ์)</div>
+          <div class="metric-desc" style="color: #f87171;">ระงับการสอบเนื่องจากทำผิดกฎครบกำหนด</div>
+        </div>
+      </div>
+
+      <!-- Controls & Search -->
+      <div class="controls-bar">
+        <div class="filter-group">
+          <input type="text" id="search-input" class="search-input" placeholder="🔍 ค้นหาชื่อ, รหัสนักศึกษา, ที่นั่ง..." />
+          <select id="status-filter" class="filter-select">
+            <option value="all">สถานะทั้งหมด</option>
+            <option value="terminated">🔴 เฉพาะผู้ที่ระเมิดเกินกำหนด (Terminated)</option>
+            <option value="timeup">⌛ หมดเวลาสอบ (Time's Up)</option>
+            <option value="warned">🟡 มีการละเมิด (Violated)</option>
+            <option value="active">🟢 กำลังสอบตามปกติ (Active)</option>
+          </select>
+        </div>
+
+        <div class="actions-group">
+          <button id="btn-export" class="btn btn-primary">📥 ส่งออกรายงาน (CSV)</button>
+          <button id="btn-refresh" class="btn btn-secondary">🔄 รีเฟรช</button>
+          <button id="btn-clear-all" class="btn btn-danger">🗑️ ล้างประวัติทั้งหมด</button>
+        </div>
+      </div>
+
+      <!-- Examinees Table -->
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>เวลาเริ่ม / สิ้นสุด</th>
+              <th>รหัสนักศึกษา</th>
+              <th>ชื่อ - นามสกุล</th>
+              <th>ห้อง / ที่นั่ง</th>
+              <th>จำนวนละเมิด</th>
+              <th>สถานะการสอบ</th>
+              <th>เหตุการณ์ล่าสุด</th>
+              <th style="text-align: right;">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="examinees-table-body">
+            <!-- Injected by options.js -->
+          </tbody>
+        </table>
+        <div id="table-empty" class="empty-state" style="display: none;">
+          <div class="empty-icon">📝</div>
+          <div>ยังไม่พบประวัติการเข้าสอบ หรือไม่มีข้อมูลตรงกับคำค้นหา</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANE 2: SYSTEM SETTINGS -->
+    <div class="tab-pane" id="pane-settings">
+      <div class="settings-card">
+        <h2 style="margin-top: 0; font-size: 20px;">⚙️ การตั้งค่าระบบ Exam Guard</h2>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 24px;">
+          กำหนดค่า URL ที่ต้องการให้ระบบป้องกันเริ่มทำงาน ระยะเวลาสอบ และเงื่อนไขการระงับการสอบ
+        </p>
+
+        <div class="settings-group">
+          <label>URL รูปแบบข้อสอบ (Exam URL Patterns)</label>
+          <textarea id="setting-patterns" placeholder="https://exam.example.com/exam/*"></textarea>
+          <div class="settings-hint">
+            ระบุ URL หนึ่งรายการต่อหนึ่งบรรทัด (สามารถใช้เครื่องหมาย * ท้าย URL สำหรับจับคู่ Subpath)
+          </div>
+        </div>
+
+        <!-- Timer Settings -->
+        <div style="background: #0b1324; border: 1px solid #1e293b; border-radius: 14px; padding: 18px 20px; margin-bottom: 22px;">
+          <div style="font-weight: 700; font-size: 14px; color: #60a5fa; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <span>⏱️</span> ระบบตั้งเวลาสอบ (Exam Timer)
+          </div>
+          <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+            <div class="settings-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+              <label>ระยะเวลาสอบ (นาที)</label>
+              <input type="number" id="setting-duration" min="1" max="360" value="60" />
+              <div class="settings-hint">เวลาที่ให้นักเรียนทำข้อสอบ (เช่น 60 นาที หรือ 120 นาที)</div>
+            </div>
+            <div class="settings-group" style="flex: 1.2; min-width: 220px; display: flex; align-items: center; margin-bottom: 0; padding-top: 18px;">
+              <label class="checkbox-label">
+                <input type="checkbox" id="setting-enable-timer" checked />
+                <span>เปิดใช้งานระบบจำกัดเวลาสอบ (Countdown Timer)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+          <div class="settings-group" style="flex: 1; min-width: 200px;">
+            <label>จำนวนครั้งที่ละเมิดได้สูงสุดก่อนระงับการสอบ</label>
+            <input type="number" id="setting-max" min="1" max="20" />
+            <div class="settings-hint">ค่าเริ่มต้นคือ 3 ครั้ง เมื่อครบจำนวนนี้ระบบจะหยุดการสอบทันที</div>
+          </div>
+
+          <div class="settings-group" style="flex: 1; min-width: 200px;">
+            <label>รหัส PIN ผู้คุมสอบ (สำหรับปลดล็อกหน้าจอ/เพิ่มเวลา)</label>
+            <input type="text" id="setting-pin" placeholder="เช่น 1234" />
+            <div class="settings-hint">รหัสสำหรับอาจารย์เพื่อปลดล็อกหน้าจอหรือเพิ่มเวลาให้นักเรียน</div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="setting-req-info" checked />
+            <span>บังคับให้นักเรียนกรอกชื่อและรหัสนักศึกษาก่อนเริ่มทำข้อสอบ</span>
+          </label>
+        </div>
+
+        <button id="btn-save-settings" class="btn btn-primary" style="padding: 12px 24px; font-size: 14px;">
+          💾 บันทึกการตั้งค่า
+        </button>
+        <div id="save-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal for Violation Timeline -->
+  <div class="modal-backdrop" id="modal-detail">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modal-title">📋 บันทึกประวัติการละเมิดกฎการสอบ</h3>
+        <button class="modal-close" id="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-content">
+        <!-- Injected by options.js -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modal-btn-close">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

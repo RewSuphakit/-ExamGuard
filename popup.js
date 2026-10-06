@@ -1,0 +1,174 @@
+// ==========================================================================
+// Exam Guard - URL Trigger v2.2 Popup Script (popup.js)
+// ==========================================================================
+
+async function loadPopupData() {
+  // 1. Get all recorded sessions
+  const data = await chrome.storage.local.get({ examGuard_sessions: [] });
+  const sessions = data.examGuard_sessions || [];
+
+  const total = sessions.length;
+  const activeSessions = sessions.filter(s => s.status === "active");
+  const terminatedSessions = sessions.filter(s => s.status === "terminated");
+
+  // Update Stats
+  document.getElementById("stat-total").textContent = total;
+  document.getElementById("stat-active").textContent = activeSessions.length;
+  document.getElementById("stat-terminated").textContent = terminatedSessions.length;
+
+  // Show Alert Box if any student exceeded violation limit
+  const alertBox = document.getElementById("alert-box");
+  const terminatedList = document.getElementById("terminated-list");
+
+  if (terminatedSessions.length > 0) {
+    alertBox.style.display = "block";
+    terminatedList.innerHTML = terminatedSessions.map(s => `
+      <li class="terminated-item">
+        <div>
+          <strong>${escapeHtml(s.studentName || "ผู้สอบ")}</strong> 
+          <span style="color:#fca5a5;">(${escapeHtml(s.studentId || "-")})</span>
+        </div>
+        <div>
+          <span style="color:#f87171; font-weight:700;">ละเมิด ${s.violations || 3}/${s.maxViolations || 3} ครั้ง</span>
+        </div>
+      </li>
+    `).join("");
+  } else {
+    alertBox.style.display = "none";
+  }
+
+  // 2. Check current tab status
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab && tab.url) {
+      const isGoogleForm = tab.url.includes("docs.google.com/forms");
+      const gformBox = document.getElementById("gform-box");
+      if (gformBox) {
+        gformBox.style.display = isGoogleForm ? "block" : "none";
+      }
+
+      chrome.runtime.sendMessage({ type: "CHECK_EXAM_URL", url: tab.url }, async res => {
+        if (chrome.runtime.lastError) {
+          return;
+        }
+        const tabStatus = document.getElementById("tab-status");
+        const tabStudent = document.getElementById("tab-student");
+
+        if (res && res.active) {
+          tabStatus.textContent = "หน้าข้อสอบ (กำลังคุม)";
+          tabStatus.className = "badge-status badge-active";
+
+          // Find current session matching this tab
+          const currentUrl = new URL(tab.url);
+          const currentKey = `examGuard_active:${currentUrl.origin}${currentUrl.pathname}`;
+          const keyData = await chrome.storage.local.get([currentKey]);
+          const activeSessionId = keyData[currentKey];
+
+          if (activeSessionId) {
+            const currentSession = sessions.find(s => s.sessionId === activeSessionId);
+            if (currentSession) {
+              if (currentSession.status === "terminated") {
+                tabStatus.textContent = "🔴 ระงับการสอบแล้ว";
+                tabStatus.className = "badge-status badge-danger";
+              } else if (currentSession.status === "timeup") {
+                tabStatus.textContent = "⌛ หมดเวลาสอบแล้ว";
+                tabStatus.className = "badge-status badge-danger";
+              }
+              tabStudent.style.display = "block";
+              tabStudent.innerHTML = `ผู้สอบ: <b>${escapeHtml(currentSession.studentName)}</b> (${escapeHtml(currentSession.studentId)}) • ละเมิด: <b>${currentSession.violations}/${currentSession.maxViolations || 3}</b>`;
+
+              const tabTimer = document.getElementById("tab-timer");
+              if (tabTimer) {
+                if (currentSession.enableTimer) {
+                  const durationMs = (currentSession.durationMinutes || 60) * 60 * 1000;
+                  const remainingMs = Math.max(0, (currentSession.startTime + durationMs) - Date.now());
+                  const mins = Math.floor(remainingMs / 60000);
+                  const secs = Math.floor((remainingMs % 60000) / 1000);
+                  const pad = n => String(n).padStart(2, "0");
+                  tabTimer.style.display = "block";
+                  tabTimer.innerHTML = remainingMs > 0
+                    ? `⏱️ เวลาที่เหลือ: ${pad(mins)}:${pad(secs)} นาที`
+                    : `⌛ หมดเวลาทำข้อสอบแล้ว`;
+                } else {
+                  tabTimer.style.display = "none";
+                }
+              }
+            }
+          }
+        } else {
+          if (isGoogleForm) {
+            tabStatus.textContent = "หน้าสร้าง Google Form";
+            tabStatus.className = "badge-status";
+            tabStatus.style.background = "rgba(124, 58, 237, 0.25)";
+            tabStatus.style.color = "#c4b5fd";
+          } else {
+            tabStatus.textContent = "ไม่ใช่หน้าข้อสอบ";
+            tabStatus.className = "badge-status badge-inactive";
+          }
+          tabStudent.style.display = "none";
+          const tabTimer = document.getElementById("tab-timer");
+          if (tabTimer) tabTimer.style.display = "none";
+        }
+      });
+    }
+  } catch (e) {
+    console.warn("Tab check warning:", e);
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// Event Listeners
+document.getElementById("btn-open-gform-sidebar").onclick = async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab && tab.id) {
+    try {
+      await chrome.tabs.sendMessage(tab.id, { action: "OPEN_GFORM_SIDEBAR" });
+      window.close();
+    } catch (err) {
+      // Content script isn't loaded on this tab yet (e.g. unrefreshed tab after extension reload)
+      // Open dashboard cleanly instead of throwing unhandled rejection error
+      chrome.tabs.create({ url: chrome.runtime.getURL("dashboard.html?form=" + encodeURIComponent(tab.url || "")) });
+      window.close();
+    }
+  }
+};
+
+document.getElementById("btn-open-dashboard").onclick = async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const formUrl = tab ? tab.url : "";
+  chrome.tabs.create({ url: chrome.runtime.getURL("dashboard.html?form=" + encodeURIComponent(formUrl)) });
+};
+
+document.getElementById("btn-dashboard").onclick = () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL("options.html#dashboard") });
+};
+
+document.getElementById("btn-settings").onclick = () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL("options.html#settings") });
+};
+
+document.getElementById("link-refresh").onclick = e => {
+  e.preventDefault();
+  loadPopupData();
+};
+
+document.getElementById("link-reset").onclick = async e => {
+  e.preventDefault();
+  if (confirm("คุณต้องการล้างประวัติการสอบและรีเซ็ตสถิติทั้งหมดใช่หรือไม่?")) {
+    await chrome.runtime.sendMessage({ type: "CLEAR_ALL_SESSIONS" });
+    await loadPopupData();
+    alert("ล้างประวัติการสอบเรียบร้อยแล้ว");
+  }
+};
+
+// Initial load
+loadPopupData();

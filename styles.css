@@ -1,0 +1,560 @@
+/* ==========================================================================
+   Exam Guard - URL Trigger v2.2 Styles
+   ========================================================================== */
+
+:root {
+  --eg-bg-overlay: rgba(10, 15, 29, 0.96);
+  --eg-bg-card: #111a2e;
+  --eg-bg-card-border: #1e293b;
+  --eg-primary: #2563eb;
+  --eg-primary-hover: #1d4ed8;
+  --eg-danger: #ef4444;
+  --eg-danger-bg: rgba(239, 68, 68, 0.12);
+  --eg-danger-border: #b91c1c;
+  --eg-warning: #f59e0b;
+  --eg-warning-bg: rgba(245, 158, 11, 0.12);
+  --eg-success: #10b981;
+  --eg-text: #f8fafc;
+  --eg-text-muted: #94a3b8;
+  --eg-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Base Gate Overlay */
+#eg-start-gate,
+#eg-lockout-gate {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483647 !important;
+  background: var(--eg-bg-overlay) !important;
+  backdrop-filter: blur(12px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: var(--eg-font) !important;
+  color: var(--eg-text) !important;
+  box-sizing: border-box !important;
+  padding: 20px !important;
+  overflow-y: auto !important;
+}
+
+/* Card */
+.eg-card {
+  width: min(520px, 94vw);
+  padding: 34px 30px;
+  border-radius: 24px;
+  background: var(--eg-bg-card);
+  border: 1px solid var(--eg-bg-card-border);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.65);
+  text-align: center;
+  box-sizing: border-box;
+  animation: egCardIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes egCardIn {
+  from { opacity: 0; transform: scale(0.96) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.eg-logo {
+  font-size: 52px;
+  line-height: 1;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 4px 12px rgba(37, 99, 235, 0.35));
+}
+
+.eg-card h1 {
+  margin: 6px 0 8px;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.eg-sub {
+  margin: 0 0 20px;
+  color: var(--eg-text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Student Form */
+.eg-form-group {
+  text-align: left;
+  margin-bottom: 14px;
+}
+
+.eg-form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-bottom: 6px;
+}
+
+.eg-form-group label .eg-req {
+  color: #f87171;
+  margin-left: 2px;
+}
+
+.eg-form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.eg-form-group input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #334155;
+  background: #0b1324;
+  color: #fff;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.eg-form-group input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+.eg-form-group input::placeholder {
+  color: #475569;
+}
+
+.eg-form-error {
+  color: #f87171;
+  font-size: 12px;
+  margin-top: 4px;
+  display: none;
+  text-align: left;
+}
+
+/* Rule checklist */
+.eg-list {
+  text-align: left;
+  line-height: 1.8;
+  margin: 18px 0 22px;
+  padding: 14px 18px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid #1e293b;
+  border-radius: 14px;
+  font-size: 13px;
+  color: #cbd5e1;
+}
+
+.eg-list div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eg-list div span.icon {
+  color: #34d399;
+  font-weight: bold;
+}
+
+/* Action Buttons */
+#eg-start,
+.eg-btn-primary {
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--eg-primary);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
+}
+
+#eg-start:hover,
+.eg-btn-primary:hover {
+  background: var(--eg-primary-hover);
+  transform: translateY(-1px);
+}
+
+.eg-card small {
+  display: block;
+  margin-top: 14px;
+  color: var(--eg-text-muted);
+  font-size: 12px;
+}
+
+/* ==========================================================================
+   LOCKOUT / TERMINATED GATE (เมื่อทำผิดกฎเกินกำหนด)
+   ========================================================================== */
+#eg-lockout-gate {
+  background: rgba(15, 7, 12, 0.98) !important;
+}
+
+.eg-lockout-card {
+  width: min(560px, 94vw);
+  border: 2px solid var(--eg-danger);
+  box-shadow: 0 25px 80px rgba(239, 68, 68, 0.35);
+}
+
+.eg-lockout-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--eg-danger-bg);
+  border: 1px solid var(--eg-danger-border);
+  color: #fca5a5;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+.eg-lockout-title {
+  color: #f87171 !important;
+  font-size: 28px !important;
+  margin-bottom: 6px !important;
+}
+
+/* Student info card on lockout */
+.eg-student-banner {
+  background: #182239;
+  border: 1px solid #283755;
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin: 16px 0;
+  text-align: left;
+}
+
+.eg-student-banner .eg-sb-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.eg-student-banner .eg-sb-label {
+  color: #94a3b8;
+}
+
+.eg-student-banner .eg-sb-val {
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+/* Violation Timeline */
+.eg-violation-timeline {
+  text-align: left;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid #334155;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin: 16px 0;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.eg-vt-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fca5a5;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.eg-vt-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+}
+
+.eg-vt-item:last-child {
+  border-bottom: none;
+}
+
+.eg-vt-num {
+  background: #ef4444;
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.eg-vt-info {
+  flex: 1;
+}
+
+.eg-vt-reason {
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+.eg-vt-time {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.eg-warning-box {
+  background: rgba(239, 68, 68, 0.15);
+  border-left: 4px solid #ef4444;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #fecaca;
+  text-align: left;
+  line-height: 1.5;
+  margin: 16px 0;
+}
+
+/* Proctor Unlock Section */
+.eg-unlock-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.eg-unlock-input {
+  flex: 1;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #475569;
+  background: #0f172a;
+  color: #fff;
+  font-size: 13px;
+}
+
+.eg-btn-unlock {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 16px;
+  background: #334155;
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.eg-btn-unlock:hover {
+  background: #475569;
+  color: #fff;
+}
+
+/* Toast */
+#eg-toast {
+  position: fixed !important;
+  right: 22px !important;
+  top: 22px !important;
+  z-index: 2147483647 !important;
+  display: none;
+  padding: 14px 18px !important;
+  border-radius: 14px !important;
+  background: #161f38 !important;
+  border: 1px solid #283755 !important;
+  color: #fff !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5) !important;
+  font-family: var(--eg-font) !important;
+  font-size: 13px !important;
+  max-width: 340px !important;
+  animation: egToastIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes egToastIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#eg-toast.eg-toast-danger {
+  background: #3b111a !important;
+  border-color: #ef4444 !important;
+}
+
+#eg-toast b {
+  display: block !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  margin-bottom: 2px !important;
+}
+
+#eg-toast span {
+  display: block !important;
+  color: #cbd5e1 !important;
+  line-height: 1.4 !important;
+}
+
+/* Watermarks */
+#eg-watermark {
+  position: fixed !important;
+  right: 14px !important;
+  bottom: 12px !important;
+  z-index: 2147483645 !important;
+  padding: 5px 10px !important;
+  border-radius: 6px !important;
+  background: rgba(0, 0, 0, 0.4) !important;
+  color: rgba(255, 255, 255, 0.45) !important;
+  font: 11px var(--eg-font) !important;
+  letter-spacing: 0.03em !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+.eg-watermark-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483644 !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  opacity: 0.08 !important;
+  background-repeat: repeat !important;
+}
+
+/* Page lock helper */
+.eg-body-locked {
+  overflow: hidden !important;
+  user-select: none !important;
+}
+
+/* Prevent text selection across exam page during exam */
+.eg-no-select,
+.eg-no-select * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+/* ==========================================================================
+   FLOATING COUNTDOWN TIMER WIDGET (ระบบจับเวลาสอบ)
+   ========================================================================== */
+#eg-timer-widget {
+  position: fixed !important;
+  top: 14px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 2147483646 !important;
+  background: rgba(15, 23, 42, 0.94) !important;
+  backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(59, 130, 246, 0.45) !important;
+  border-radius: 999px !important;
+  padding: 8px 22px !important;
+  color: #f8fafc !important;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5) !important;
+  user-select: none !important;
+  pointer-events: auto !important;
+  transition: all 0.25s ease !important;
+}
+
+.eg-timer-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.eg-timer-label {
+  font-size: 12px;
+  color: #94a3b8;
+  font-family: var(--eg-font);
+  font-weight: 600;
+}
+
+#eg-timer-clock {
+  font-size: 17px;
+  font-weight: 800;
+  color: #60a5fa;
+  letter-spacing: 0.05em;
+}
+
+#eg-timer-widget.eg-timer-warning {
+  border-color: #f59e0b !important;
+  box-shadow: 0 8px 30px rgba(245, 158, 11, 0.35) !important;
+}
+#eg-timer-widget.eg-timer-warning #eg-timer-clock {
+  color: #fbbf24 !important;
+}
+
+#eg-timer-widget.eg-timer-critical {
+  border-color: #ef4444 !important;
+  animation: timerPulse 1.5s infinite ease-in-out !important;
+}
+#eg-timer-widget.eg-timer-critical #eg-timer-clock {
+  color: #f87171 !important;
+}
+
+@keyframes timerPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+  50% { box-shadow: 0 0 16px 4px rgba(239, 68, 68, 0.4); }
+}
+
+/* ==========================================================================
+   TIME'S UP GATE (หมดเวลาสอบ)
+   ========================================================================== */
+#eg-timeup-gate {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483647 !important;
+  background: rgba(12, 17, 33, 0.98) !important;
+  backdrop-filter: blur(14px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: var(--eg-font) !important;
+  color: var(--eg-text) !important;
+  box-sizing: border-box !important;
+  padding: 20px !important;
+  overflow-y: auto !important;
+}
+
+.eg-timeup-card {
+  width: min(540px, 94vw);
+  border: 2px solid #f59e0b;
+  box-shadow: 0 25px 80px rgba(245, 158, 11, 0.3);
+}
+
+.eg-timeup-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid #d97706;
+  color: #fbbf24;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+.eg-timeup-title {
+  color: #fbbf24 !important;
+  font-size: 28px !important;
+  margin-bottom: 6px !important;
+}
+
+.eg-timeup-box {
+  background: rgba(245, 158, 11, 0.15);
+  border-left: 4px solid #f59e0b;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #fef3c7;
+  text-align: left;
+  line-height: 1.5;
+  margin: 16px 0;
+}

@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <title>Exam Guard - Extended Form Control Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --primary: #673ab7;
+      --primary-dark: #512da8;
+      --primary-light: #d1c4e9;
+      --accent: #7c4dff;
+      --bg: #f0ebf8;
+      --text: #202124;
+      --muted: #5f6368;
+      --border: #dadce0;
+      --sidebar-width: 330px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Google Sans", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* Layout */
+    #layout {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Left: Google Forms Preview */
+    #form-container {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background: #fdfbff;
+      border-right: 1px solid var(--border);
+    }
+
+    .form-topbar {
+      height: 54px;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-size: 14px;
+    }
+
+    .form-url-input {
+      flex: 1;
+      max-width: 550px;
+      margin: 0 16px;
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      outline: none;
+    }
+    .form-url-input:focus {
+      border-color: var(--primary);
+    }
+
+    iframe#google-form-frame {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #fff;
+    }
+
+    /* Right: Extended Form Sidebar (Exact match to screenshot) */
+    #sidebar-panel {
+      width: var(--sidebar-width);
+      height: 100%;
+      background: #ffffff;
+      box-shadow: -4px 0 20px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    /* Sidebar Header */
+    .sidebar-header {
+      background: var(--primary);
+      color: #fff;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .header-icons {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    /* Profile Row */
+    .profile-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid #f1f3f4;
+      font-size: 13px;
+      color: #3c4043;
+    }
+    .profile-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .user-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #e8eaed;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+
+    /* Sidebar Content Scrollable */
+    .sidebar-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    /* Share Form Dropdown */
+    .share-select-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .share-select {
+      flex: 1;
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 13px;
+      outline: none;
+    }
+    .btn-share-icon {
+      background: #f1f3f4;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--primary);
+    }
+    .btn-share-icon:hover { background: #e8eaed; }
+
+    /* Feature Item Row */
+    .feature-item {
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #f1f3f4;
+    }
+    .feature-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .feature-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #202124;
+    }
+    .icon-help {
+      color: #9aa0a6;
+      font-size: 12px;
+      cursor: help;
+    }
+
+    /* Toggle Switch (Material / iOS Style) */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 38px;
+      height: 20px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #dadce0;
+      transition: .25s;
+      border-radius: 20px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .25s;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    input:checked + .slider {
+      background-color: var(--primary);
+    }
+    input:checked + .slider:before {
+      transform: translateX(18px);
+    }
+
+    /* Input sub-row */
+    .sub-input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      padding-left: 2px;
+    }
+    .sub-num-input {
+      width: 65px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      text-align: center;
+    }
+    .sub-unit-label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Counter (+ - buttons) */
+    .counter-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-counter {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-weight: bold;
+      color: var(--muted);
+    }
+    .btn-counter:hover { background: #f1f3f4; color: #000; }
+
+    /* Footer Buttons (Like ExtendedForms) */
+    .sidebar-footer {
+      border-top: 1px solid var(--border);
+      padding: 12px 14px;
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .btn-action-primary {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+      border: 0;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+    .btn-action-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: space-around;
+      padding-top: 4px;
+    }
+    .btn-footer-link {
+      background: transparent;
+      border: 0;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-footer-link:hover { text-decoration: underline; }
+
+    /* Share Alert Modal */
+    #copy-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 350px;
+      background: #202124;
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="layout">
+    <!-- Left: Google Forms Preview Screen -->
+    <div id="form-container">
+      <div class="form-topbar">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <strong style="color:var(--primary);">📋 แบบทดสอบ:</strong>
+        </div>
+        <input 
+          type="url" 
+          id="custom-form-url" 
+          class="form-url-input" 
+          value="https://docs.google.com/forms/d/e/1FAIpQLScsVqQkzvQrzCoccN6QO8Jr5ZECnLmT7ZvPnTSs_aVXqd9lOw/viewform"
+          placeholder="วางลิงก์ Google Forms ที่นี่"
+        />
+        <button type="button" class="btn-action-primary" id="btn-reload-form" style="width:auto; padding:6px 14px;">โหลดฟอร์ม</button>
+      </div>
+
+      <iframe id="google-form-frame" src="about:blank"></iframe>
+    </div>
+
+    <!-- Right: Extended Form Sidebar (Exact Layout from Screenshot) -->
+    <div id="sidebar-panel">
+      <!-- Title Bar -->
+      <div class="sidebar-header">
+        <span>EXTENDED FORM (EXAM GUARD)</span>
+        <div class="header-icons">
+          <span>—</span>
+          <span>✕</span>
+        </div>
+      </div>
+
+      <!-- Profile -->
+      <div class="profile-row">
+        <div class="profile-user">
+          <div class="user-avatar">👤</div>
+          <span>exam.proctor@gmail.com</span>
+        </div>
+        <span style="color:#9aa0a6; cursor:pointer;">⋮</span>
+      </div>
+
+      <!-- Body / Toggles -->
+      <div class="sidebar-body">
+        <div class="section-title">Share Form</div>
+        <div class="share-select-box">
+          <select class="share-select" id="share-mode">
+            <option value="anonymous">Link (Anonymous)</option>
+            <option value="restricted">Link (Require Student ID)</option>
+          </select>
+          <button type="button" class="btn-share-icon" id="btn-share-icon" title="คัดลอกลิงก์">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- 1. Time Limit Toggle -->
+        <div class="feature-item">
+          <div class="feature-header">
+            <span class="feature-label">
+              <span>Time Limit</span>
+              <span class="icon-help" title="กำหนดเวลาทำข้อสอบ">?</span>
+            </span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-timer" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="sub-input-row" id="row-timer">
+            <input type="number" id="input-timer" class="sub-num-input" value="60" min="1" max="300">
+            <span class="sub-unit-label">minutes</span>
+          </div>
+        </div>
+
+        <!-- 2. Restrict Attempts / Max Violations -->
+        <div class="feature-item">
+          <div class="feature-header">
+            <span class="feature-label">
+              <span>Restrict Attempts</span>
+              <span class="icon-help" title="จำนวนครั้งที่ทำผิดกฎได้สูงสุดก่อนตัดสิทธิ์">?</span>
+            </span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-violations" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="sub-input-row" id="row-violations">
+            <div class="counter-box">
+              <button type="button" class="btn-counter" id="btn-viol-minus">−</button>
+              <input type="number" id="input-violations" class="sub-num-input" value="3" min="1" max="10" readonly>
+              <button type="button" class="btn-counter" id="btn-viol-plus">+</button>
+            </div>
+            <span class="sub-unit-label">strikes allowed</span>
+          </div>
+        </div>
+
+        <!-- 3. Auto-Submit after timer ends -->
+        <div class="feature-item">
+          <div class="feature-header">
+            <span class="feature-label">
+              <span>Auto-Submit on Time Up</span>
+              <span class="icon-help" title="ล็อกหน้าจอข้อสอบทันทีเมื่อหมดเวลา">?</span>
+            </span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-autosubmit" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 4. Camera Proctoring -->
+        <div class="feature-item">
+          <div class="feature-header">
+            <span class="feature-label">
+              <span>📷 Camera Snapshots</span>
+              <span class="icon-help" title="เปิดกล้องเว็บแคมบันทึกภาพยืนยันตัวตน">?</span>
+            </span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-camera" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 5. Tab Switch Detection -->
+        <div class="feature-item">
+          <div class="feature-header">
+            <span class="feature-label">
+              <span>📑 Tab Switch Detection</span>
+              <span class="icon-help" title="ตรวจจับการสลับแท็บ ย่อเบราว์เซอร์">?</span>
+            </span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-tab" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 6. Block Copy & Right Click -->
+        <div class="feature-item">
+          <div class="feature-header">
+            <span class="feature-label">
+              <span>📋 Block Copy & Paste</span>
+              <span class="icon-help" title="บล็อกการคัดลอก ตัด และคลิกขวา">?</span>
+            </span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-copy" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 7. Force Fullscreen -->
+        <div class="feature-item">
+          <div class="feature-header">
+            <span class="feature-label">
+              <span>🔲 Force Fullscreen</span>
+              <span class="icon-help" title="บังคับทำข้อสอบในโหมดเต็มจอ">?</span>
+            </span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-fullscreen" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 8. Watermark -->
+        <div class="feature-item">
+          <div class="feature-header">
+            <span class="feature-label">
+              <span>🌊 Student Watermark</span>
+              <span class="icon-help" title="แสดงลายน้ำชื่อและรหัสป้องกันแอบถ่าย">?</span>
+            </span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-watermark" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer Buttons -->
+      <div class="sidebar-footer">
+        <button type="button" class="btn-action-primary" id="btn-copy-link">
+          🔗 คัดลอกลิงก์ส่งให้นักเรียน
+        </button>
+
+        <div class="footer-links">
+          <button type="button" class="btn-footer-link" id="btn-preview">
+            👁️ Preview
+          </button>
+          <button type="button" class="btn-footer-link" id="btn-responses">
+            📊 Responses
+          </button>
+          <button type="button" class="btn-footer-link" id="btn-invite">
+            ✉️ Invite
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="copy-toast">✅ คัดลอกลิงก์ข้อสอบเรียบร้อยแล้ว! ส่งให้นักเรียนได้ทันที</div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
