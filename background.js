@@ -10,6 +10,8 @@ const DEFAULTS = {
   enableTimer: true,
   examDurationMinutes: 60,
   examPatterns: [
+    "*docs.google.com/forms/*/viewform*",
+    "*docs.google.com/forms/*/formResponse*",
     "https://your-exam.example.com/exam/*"
   ]
 };
@@ -19,6 +21,11 @@ chrome.runtime.onInstalled.addListener(async () => {
   const current = await chrome.storage.local.get(DEFAULTS);
   if (!current.examPatterns || current.examPatterns.length === 0) {
     current.examPatterns = DEFAULTS.examPatterns;
+  } else {
+    // Ensure Google Forms patterns exist in examPatterns
+    if (!current.examPatterns.some(p => p.includes("docs.google.com/forms"))) {
+      current.examPatterns.unshift("*docs.google.com/forms/*/viewform*");
+    }
   }
   if (!current.maxViolations) current.maxViolations = DEFAULTS.maxViolations;
   if (!current.proctorPin) current.proctorPin = DEFAULTS.proctorPin;
@@ -29,26 +36,16 @@ chrome.runtime.onInstalled.addListener(async () => {
   await updateBadge();
 });
 
-// Pattern matching function
+// Pattern matching function supporting glob *
 function matchesPattern(url, pattern) {
   try {
     if (!pattern || !url) return false;
     const pat = pattern.trim();
     if (!pat) return false;
 
-    // Wildcard substring pattern (e.g. *demo-exam-page.html or localhost:3000/*)
-    if (pat.startsWith("*") || !pat.includes("://")) {
-      const cleanPattern = pat.replace(/^\*/, "").replace(/\*$/, "");
-      return url.toLowerCase().includes(cleanPattern.toLowerCase());
-    }
-
-    const u = new URL(url);
-    const p = new URL(pat);
-    if (u.protocol !== p.protocol || u.hostname !== p.hostname) return false;
-    const path = p.pathname.endsWith("*")
-      ? u.pathname.startsWith(p.pathname.slice(0, -1))
-      : u.pathname === p.pathname;
-    return path;
+    const escapeRegex = s => s.replace(/[-[\]{}()+?.,\\^$|#\s]/g, "\\$&");
+    const regexPattern = pat.split("*").map(escapeRegex).join(".*");
+    return new RegExp(regexPattern, "i").test(url);
   } catch {
     return false;
   }
@@ -57,6 +54,17 @@ function matchesPattern(url, pattern) {
 async function isExamUrl(url) {
   const cfg = await chrome.storage.local.get(DEFAULTS);
   if (!cfg.enabled || !url) return false;
+
+  // Never lock teacher's form edit page
+  if (url.includes("docs.google.com/forms") && url.includes("/edit")) {
+    return false;
+  }
+
+  // Auto-protect Google Forms viewform/test pages
+  if (url.includes("docs.google.com/forms") && (url.includes("/viewform") || url.includes("/formResponse"))) {
+    return true;
+  }
+
   return (cfg.examPatterns || []).some(p => matchesPattern(url, p.trim()));
 }
 

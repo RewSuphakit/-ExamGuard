@@ -176,8 +176,18 @@
       #egw-timer-widget.egw-timer-critical { border-color: #ef4444 !important; animation: egwPulse 1.5s infinite; }
       #egw-timer-widget.egw-timer-critical #egw-timer-clock { color: #f87171 !important; }
       @keyframes egwPulse {
-        0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
-        50% { box-shadow: 0 0 16px 4px rgba(239, 68, 68, 0.4); }
+      /* Warning Modal */
+      #egw-warning-overlay {
+        position: fixed !important; inset: 0 !important; z-index: 2147483646 !important;
+        background: rgba(10, 15, 29, 0.94) !important; backdrop-filter: blur(12px) !important;
+        display: none; align-items: center !important; justify-content: center !important;
+        font-family: var(--egw-font) !important; color: var(--egw-text) !important; padding: 20px !important;
+        box-sizing: border-box !important; animation: egwFadeIn 0.2s ease !important;
+      }
+      .egw-warning-card {
+        width: min(480px, 92vw); padding: 30px 24px; border-radius: 22px;
+        background: #182239; border: 2px solid var(--egw-danger) !important;
+        box-shadow: 0 20px 60px rgba(239, 68, 68, 0.35); text-align: center;
       }
 
       /* Lockout & TimeUp Cards */
@@ -790,8 +800,43 @@
 
       terminateExam(sessionData, detail);
     } else {
-      showToast("⚠️ ตรวจพบการละเมิดกฎ", `${detail} (ครั้งที่ ${violations}/${config.maxViolations})`, "danger");
+      showViolationModal(detail, violations, config.maxViolations);
     }
+  }
+
+  function showViolationModal(detail, current, max) {
+    let overlay = document.getElementById("egw-warning-overlay");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "egw-warning-overlay";
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML = `
+      <div class="egw-warning-card">
+        <div style="font-size: 46px; margin-bottom: 8px;">⚠️</div>
+        <h2 style="color: #f87171; margin: 0 0 10px; font-size: 20px; font-weight: 800;">ตรวจพบการละเมิดกฎการสอบ!</h2>
+        <p style="font-size: 14px; margin: 0 0 16px; color: #f1f5f9; line-height: 1.5;">${escapeHtml(detail)}</p>
+        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 14px; padding: 14px 16px; margin-bottom: 22px;">
+          <div style="color: #f87171; font-weight: 800; font-size: 16px; margin-bottom: 4px;">
+            ละเมิดครั้งที่ ${current} / ${max} ครั้ง
+          </div>
+          <div style="color: #94a3b8; font-size: 12px; line-height: 1.4;">
+            หากทำผิดกฎครบ ${max} ครั้ง ระบบจะล็อกหน้าจอและตัดสิทธิ์การสอบทันที
+          </div>
+        </div>
+        <button type="button" id="egw-btn-resume-exam" class="egw-btn" style="background: #ef4444; width: 100%;">
+          รับทราบและกลับไปทำข้อสอบต่อ
+        </button>
+      </div>
+    `;
+    overlay.style.display = "flex";
+
+    document.getElementById("egw-btn-resume-exam").onclick = async () => {
+      overlay.style.display = "none";
+      try {
+        await document.documentElement.requestFullscreen?.();
+      } catch (e) {}
+    };
   }
 
   // ==========================================================================
@@ -1010,28 +1055,25 @@
   document.addEventListener("visibilitychange", () => {
     if (started && !isTerminated && !isTimeUp && document.hidden && config.detectTabSwitch) {
       const now = Date.now();
-      if (now - lastTabViolationTime < 2000) return;
+      if (now - lastTabViolationTime < 1500) return;
       lastTabViolationTime = now;
-      addViolation("tab", "สลับแท็บ ย่อเบราว์เซอร์ หรือเปิดแอปอื่น");
+      addViolation("tab", "สลับแท็บเบราว์เซอร์ หรือย่อหน้าต่างลง");
     }
   });
 
   window.addEventListener("blur", () => {
-    if (started && !isTerminated && !isTimeUp && config.detectTabSwitch) {
-      // ตรวจสอบว่าเป็นการคลิกเข้าไปทำข้อสอบใน iframe หรือไม่ (เช่น Google Forms)
-      setTimeout(() => {
-        if (!started || isTerminated || isTimeUp) return;
-        if (document.activeElement && document.activeElement.tagName === "IFRAME") {
-          return; // ผู้สอบกำลังคลิกทำข้อสอบใน iframe (Google Forms) ปลอดภัย ไม่นับเป็นความผิด
-        }
-        if (document.hidden) return; // มี visibilitychange จัดการอยู่แล้ว ไม่นับซ้ำ
+    if (!started || isTerminated || isTimeUp || !config.detectTabSwitch) return;
+    setTimeout(() => {
+      if (!started || isTerminated || isTimeUp) return;
+      // ตรวจสอบว่าเบราว์เซอร์หลุดโฟกัสจริงหรือไม่ (เช่น สลับไปใช้โปรแกรมอื่น, คลิกทาสก์บาร์)
+      if (!document.hasFocus() && !document.hidden) {
         const now = Date.now();
         if (now - lastTabViolationTime < 1500) return;
         if (now - lastBlurViolationTime < 2000) return;
         lastBlurViolationTime = now;
-        addViolation("blur", "คลิกออกนอกหน้าต่างสอบ");
-      }, 80);
-    }
+        addViolation("blur", "สลับไปใช้งานโปรแกรมอื่น หรือคลิกออกนอกหน้าจอสอบ");
+      }
+    }, 150);
   });
 
   // ตรวจจับการออกจากโหมดเต็มหน้าจอ
@@ -1087,6 +1129,7 @@
         document.body.classList.add("egw-no-select");
         setupWatermarks();
         if (config.enableTimer) initExamTimer();
+        if (config.enableCamera) initCamera();
         showToast("🛡️ ดำเนินการสอบต่อ", `ผู้สอบ: ${existing.studentName} (ละเมิด ${violations}/${config.maxViolations})`);
         return;
       }
