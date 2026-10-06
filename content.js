@@ -15,7 +15,7 @@
     document.documentElement.setAttribute("data-exam-guard-version", "2.3.0");
     window.dispatchEvent(new CustomEvent("EXAM_GUARD_HANDSHAKE", { detail: { version: "2.3.0", installed: true } }));
     window.postMessage({ type: "EXAM_GUARD_HANDSHAKE", version: "2.3.0", installed: true }, "*");
-  } catch (e) {}
+  } catch (e) { }
 
   let active = false;
   let started = false;
@@ -363,9 +363,9 @@
     // Lock page
     document.body?.classList.add("eg-body-locked");
     if (document.fullscreenElement) {
-      try { document.exitFullscreen(); } catch {}
+      try { document.exitFullscreen(); } catch { }
     }
-    try { document.activeElement?.blur?.(); } catch {}
+    try { document.activeElement?.blur?.(); } catch { }
 
     showTimeUpGate(session);
   }
@@ -586,10 +586,10 @@
     document.documentElement?.classList.add("eg-terminated");
 
     if (document.fullscreenElement) {
-      try { document.exitFullscreen(); } catch {}
+      try { document.exitFullscreen(); } catch { }
     }
 
-    try { document.activeElement?.blur?.(); } catch {}
+    try { document.activeElement?.blur?.(); } catch { }
 
     showLockoutGate(session, reason);
   }

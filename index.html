@@ -40,16 +40,19 @@
     }
 
     #top-bar {
+      display: none; /* ซ่อนแถบเครื่องมือครูสำหรับนักเรียนเป็นค่าเริ่มต้น */
       height: 48px;
       background: #111a2e;
       border-bottom: 1px solid #1e293b;
-      display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 16px;
       font-size: 13px;
       z-index: 10;
       flex-shrink: 0;
+    }
+    #top-bar.proctor-visible {
+      display: flex;
     }
     .badge-secure {
       background: rgba(16, 185, 129, 0.15);
@@ -84,9 +87,12 @@
     #form-wrapper {
       flex: 1;
       width: 100%;
-      height: calc(100% - 48px);
+      height: 100%;
       position: relative;
       background: #f0ebf8;
+    }
+    #top-bar.proctor-visible ~ #form-wrapper {
+      height: calc(100% - 48px);
     }
 
     iframe#google-form-iframe {

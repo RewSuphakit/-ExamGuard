@@ -45,6 +45,28 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Proctor Mode Handling: Students do NOT see top-bar
+  const urlParams = new URLSearchParams(window.location.search);
+  const isProctor = urlParams.get("proctor") === "1" || urlParams.get("teacher") === "1";
+  const topBar = document.getElementById("top-bar");
+
+  if (isProctor && topBar) {
+    topBar.classList.add("proctor-visible");
+  }
+
+  // Hidden Teacher Shortcut: Press Ctrl + Shift + P to toggle proctor toolbar with PIN 1234
+  document.addEventListener("keydown", e => {
+    if (e.ctrlKey && e.shiftKey && (e.key === "P" || e.key === "p")) {
+      e.preventDefault();
+      const pin = prompt("🔐 กรุณากรอกรหัส PIN ผู้คุมสอบเพื่อเปิดแผงควบคุม:");
+      if (pin === (window.ExamGuardConfig?.proctorPin || "1234")) {
+        if (topBar) topBar.classList.toggle("proctor-visible");
+      } else if (pin) {
+        alert("❌ รหัส PIN ผู้คุมสอบไม่ถูกต้อง");
+      }
+    }
+  });
+
   // Modals & Buttons
   const btnChangeForm = document.getElementById("btn-change-form");
   const modalChangeForm = document.getElementById("change-form-modal");
