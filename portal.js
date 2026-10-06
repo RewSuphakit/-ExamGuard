@@ -19,7 +19,10 @@ document.addEventListener("DOMContentLoaded", () => {
   function getTargetFormUrl() {
     const params = new URLSearchParams(window.location.search);
     const queryForm = params.get("form");
-    if (queryForm) return queryForm;
+    if (queryForm) {
+      localStorage.setItem("eg_current_google_form", queryForm);
+      return queryForm;
+    }
 
     const saved = localStorage.getItem("eg_current_google_form");
     return saved || DEFAULT_FORM_URL;
@@ -103,8 +106,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!input) return alert("กรุณากรอกลิงก์ Google Forms");
       localStorage.setItem("eg_current_google_form", input);
       if (modalChangeForm) modalChangeForm.style.display = "none";
-      loadFormIntoIframe();
-      alert("✅ อัปเดตข้อสอบ Google Forms เรียบร้อยแล้ว! ระบบป้องกันพร้อมทำงาน");
+      const u = new URL(window.location.href);
+      u.searchParams.set("form", input);
+      u.searchParams.set("reset", "1");
+      window.location.href = u.href;
     });
   }
 

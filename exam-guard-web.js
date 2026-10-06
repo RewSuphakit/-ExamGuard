@@ -32,6 +32,41 @@
   if (urlParams.has("violations")) urlOverrides.maxViolations = parseInt(urlParams.get("violations"), 10) || 3;
   if (urlParams.has("autoSubmit")) urlOverrides.autoSubmitOnTimeUp = urlParams.get("autoSubmit") === "1" || urlParams.get("autoSubmit") === "true";
 
+  // ระบุรหัสข้อสอบ Google Form เพื่อแยก Session ของแต่ละข้อสอบออกจากกัน
+  function getFormIdentifier() {
+    const p = new URLSearchParams(window.location.search);
+    const formUrl = p.get("form") || "";
+    if (formUrl) {
+      const match = formUrl.match(/\/forms\/(?:d\/e\/|d\/|u\/\d+\/d\/)?([a-zA-Z0-9_-]{12,})/);
+      if (match && match[1]) return match[1];
+      let hash = 0;
+      for (let i = 0; i < formUrl.length; i++) {
+        hash = ((hash << 5) - hash) + formUrl.charCodeAt(i);
+        hash |= 0;
+      }
+      return "f_" + Math.abs(hash);
+    }
+    try {
+      const saved = localStorage.getItem("eg_current_google_form") || "";
+      if (saved) {
+        const m = saved.match(/\/forms\/(?:d\/e\/|d\/|u\/\d+\/d\/)?([a-zA-Z0-9_-]{12,})/);
+        if (m && m[1]) return m[1];
+      }
+    } catch (e) {}
+    return "default";
+  }
+
+  const currentFormId = getFormIdentifier();
+  const currentFormUrl = urlParams.get("form") || "";
+
+  // ถ้ามีพารามิเตอร์ ?reset=1 หรือ ?new=1 ให้ล้างข้อมูลเดิมเพื่อเริ่มสอบใหม่
+  if (urlParams.get("reset") === "1" || urlParams.get("new") === "1" || urlParams.get("fresh") === "1") {
+    try {
+      localStorage.removeItem(`eg_web_${location.origin}${location.pathname}_${currentFormId}`);
+      localStorage.removeItem(`eg_web_${location.origin}${location.pathname}`);
+    } catch (e) {}
+  }
+
   // Configuration (สามารถปรับแต่งผ่าน window.ExamGuardConfig หรือ URL ได้)
   const config = Object.assign(
     {
@@ -48,7 +83,7 @@
       requireStudentInfo: true,     // บังคับกรอกชื่อและรหัสนักศึกษา
       proctorPin: "1234",           // รหัส PIN ผู้คุมสอบสำหรับปลดล็อก/เพิ่มเวลา
       examTitle: document.title || "แบบทดสอบออนไลน์",
-      storageKey: `eg_web_${location.origin}${location.pathname}`,
+      storageKey: `eg_web_${location.origin}${location.pathname}_${currentFormId}`,
       onTerminated: null,           // Callback เมื่อถูกระงับสิทธิ์
       onTimeUp: null                // Callback เมื่อหมดเวลา
     },
@@ -400,8 +435,21 @@
 
   function loadSession() {
     try {
-      const raw = localStorage.getItem(config.storageKey);
-      return raw ? JSON.parse(raw) : null;
+      let raw = localStorage.getItem(config.storageKey);
+      if (!raw) {
+        const legacy = localStorage.getItem(`eg_web_${location.origin}${location.pathname}`);
+        if (legacy) {
+          const p = JSON.parse(legacy);
+          if (p && p.formId === currentFormId) raw = legacy;
+        }
+      }
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      // Validate that session belongs to current form!
+      if (parsed && parsed.formId && currentFormId && parsed.formId !== currentFormId) {
+        return null;
+      }
+      return parsed;
     } catch (e) {
       return null;
     }
@@ -480,6 +528,8 @@
     if (hasError) return;
 
     sessionData = {
+      formId: currentFormId,
+      formUrl: currentFormUrl,
       studentName: name || "ผู้เข้าสอบ",
       studentId: id || "N/A",
       seatNumber: seat,
@@ -664,10 +714,20 @@
           </div>
           <div id="egw-timeup-msg" style="color:#f87171; font-size:12px; margin-top:6px; display:none;"></div>
         </div>
+
+        <div style="margin-top:14px; text-align:center;">
+          <button id="egw-btn-restart-timeup" type="button" style="background:#1e293b; border:1px solid #334155; color:#cbd5e1; border-radius:10px; padding:9px 18px; font-size:12px; font-weight:600; cursor:pointer;">
+            🔄 เริ่มทำข้อสอบใหม่ (รีเซ็ตสำหรับการทดสอบ)
+          </button>
+        </div>
       </div>
     `;
 
     document.getElementById("egw-btn-extra").onclick = handleGrantExtraTime;
+    const btnRestartTimeUp = document.getElementById("egw-btn-restart-timeup");
+    if (btnRestartTimeUp) {
+      btnRestartTimeUp.onclick = () => window.ExamGuardWeb.resetSession();
+    }
   }
 
   function handleGrantExtraTime() {
@@ -1014,10 +1074,20 @@
           </div>
           <div id="egw-unlock-msg" style="color:#f87171; font-size:12px; margin-top:6px; display:none;"></div>
         </div>
+
+        <div style="margin-top:14px; text-align:center;">
+          <button id="egw-btn-restart-lockout" type="button" style="background:#1e293b; border:1px solid #334155; color:#cbd5e1; border-radius:10px; padding:9px 18px; font-size:12px; font-weight:600; cursor:pointer;">
+            🔄 เริ่มทำข้อสอบใหม่ (รีเซ็ตสำหรับการทดสอบ)
+          </button>
+        </div>
       </div>
     `;
 
     document.getElementById("egw-btn-unlock").onclick = handleProctorUnlock;
+    const btnRestartLockout = document.getElementById("egw-btn-restart-lockout");
+    if (btnRestartLockout) {
+      btnRestartLockout.onclick = () => window.ExamGuardWeb.resetSession();
+    }
   }
 
   function handleProctorUnlock() {
@@ -1262,7 +1332,14 @@
   window.ExamGuardWeb = {
     getSession: () => sessionData,
     resetSession: () => {
-      localStorage.removeItem(config.storageKey);
+      try {
+        localStorage.removeItem(config.storageKey);
+        localStorage.removeItem(`eg_web_${location.origin}${location.pathname}`);
+        localStorage.removeItem(`eg_web_${location.origin}${location.pathname}_${currentFormId}`);
+        Object.keys(localStorage).forEach(k => {
+          if (k.startsWith("eg_web_")) localStorage.removeItem(k);
+        });
+      } catch (e) {}
       location.reload();
     },
     viewSnapshots: () => {
