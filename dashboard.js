@@ -82,7 +82,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const watermarkOn = toggleWatermark ? toggleWatermark.checked : true;
     const mode = shareMode ? shareMode.value : "anonymous";
 
-    const base = window.location.href.split("?")[0].replace("dashboard.html", "index.html");
+    let base = window.location.href.split("?")[0].replace("dashboard.html", "index.html");
+    if (base.startsWith("chrome-extension://")) {
+      base = "https://rewsuphakit.github.io/-ExamGuard/index.html";
+    }
     const url = new URL(base);
 
     url.searchParams.set("form", formUrl);

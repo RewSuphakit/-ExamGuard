@@ -1256,7 +1256,8 @@
       const wmOn = document.getElementById("eg-gf-chk-wm").checked;
       const mode = document.getElementById("eg-gf-mode").value;
 
-      const portalBase = chrome.runtime.getURL("index.html");
+      // Use GitHub Pages public portal URL so students can take the exam without installing any extension!
+      const portalBase = "https://rewsuphakit.github.io/-ExamGuard/index.html";
       const url = new URL(portalBase);
       url.searchParams.set("form", viewUrl);
       url.searchParams.set("timer", timerOn ? duration : "0");
